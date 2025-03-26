@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: cork-indexer
+networks:
+- id: 1
+  start_block: 21840338
+  contracts:
+  - name: CorkCore
+    address:
+    - 0xCCd90F6435dd78C4ECCED1FA4db0D7242548a2a9
+    handler: src/EventHandlers.ts
+    events:
+    - event: Cancelled(bytes32 indexed id, uint256 indexed dsId, address indexed redeemer, uint256 raAmount, uint256 swapAmount)
+    - event: CtRedeemed(bytes32 indexed id, uint256 indexed dsId, address indexed redeemer, uint256 amount, uint256 paReceived, uint256 raReceived)
+    - event: DsRedeemed(bytes32 indexed id, uint256 indexed dsId, address indexed redeemer, uint256 paUsed, uint256 dsUsed, uint256 raReceived, uint256 dsExchangeRate, uint256 feePercentage, uint256 fee)
+    - event: EarlyRedemptionFeeRateUpdated(bytes32 indexed id, uint256 earlyRedemptionFeeRate)
+    - event: Initialized(uint64 version)
+    - event: InitializedModuleCore(bytes32 indexed id, address indexed pa, address indexed ra, address lv, uint256 expiry, uint256 initialArp, address exchangeRateProvider)
+    - event: Issued(bytes32 indexed id, uint256 indexed dsId, uint256 indexed expiry, address ds, address ct, bytes32 raCtUniPairId)
+    - event: LiquidationFundsRequested(bytes32 indexed id, address indexed who, uint256 amount)
+    - event: LvDeposited(bytes32 indexed id, address indexed depositor, uint256 received, uint256 deposited)
+    - event: LvDepositsStatusUpdated(bytes32 indexed id, bool isLVDepositPaused)
+    - event: LvRedeemEarly(bytes32 indexed id, address indexed redeemer, address indexed receiver, uint256 lvBurned, uint256 ctReceivedFromAmm, uint256 ctReceivedFromVault, uint256 dsReceived, uint256 paReceived, uint256 raReceivedFromAmm, uint256 raIdleReceived, bytes32 withdrawalId)
+    - event: LvWithdrawalsStatusUpdated(bytes32 indexed id, bool isLVWithdrawalPaused)
+    - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+    - event: ProfitReceived(address indexed router, uint256 amount)
+    - event: PsmBaseRedemptionFeePercentageUpdated(bytes32 indexed id, uint256 indexed psmBaseRedemptionFeePercentage)
+    - event: PsmDeposited(bytes32 indexed id, uint256 indexed dsId, address indexed depositor, uint256 amount, uint256 received, uint256 exchangeRate)
+    - event: PsmDepositsStatusUpdated(bytes32 indexed id, bool isPSMDepositPaused)
+    - event: PsmRepurchasesStatusUpdated(bytes32 indexed id, bool isPSMRepurchasePaused)
+    - event: PsmWithdrawalsStatusUpdated(bytes32 indexed id, bool isPSMWithdrawalPaused)
+    - event: RateUpdated(bytes32 indexed id, uint256 newRate, uint256 previousRate)
+    - event: RepurchaseFeeRateUpdated(bytes32 indexed id, uint256 indexed repurchaseFeeRate)
+    - event: Repurchased(bytes32 indexed id, address indexed buyer, uint256 indexed dsId, uint256 raUsed, uint256 receivedPa, uint256 receivedDs, uint256 feePercentage, uint256 fee, uint256 exchangeRates)
+    - event: RolledOver(bytes32 indexed id, uint256 indexed currentDsId, address indexed owner, uint256 prevDsId, uint256 amountCtRolledOver, uint256 dsReceived, uint256 ctReceived, uint256 paReceived)
+    - event: RolloverProfitClaimed(bytes32 indexed id, uint256 indexed dsId, address indexed owner, uint256 amount, uint256 profit, uint256 remainingDs)
+    - event: SnapshotUpdated(uint256 snapshotIndex, uint256 newValue)
+    - event: TradeExecutionResultFundsReceived(bytes32 indexed id, address indexed who, uint256 amount)
+    - event: TradeExecutionResultFundsUsed(bytes32 indexed id, address indexed who, uint256 amount)
+    - event: Upgraded(address indexed implementation)
+    - event: VaultNavThresholdUpdated(bytes32 indexed id, uint256 navThreshold)
+  - name: CorkHook
+    address:
+    - 0x5287E8915445aee78e10190559D8Dd21E0E9Ea88
+    handler: src/EventHandlers.ts
+    events:
+    - event: AddedLiquidity(address indexed ra, address indexed ct, uint256 raAmount, uint256 ctAmount, uint256 mintedLp, address who)
+    - event: Initialized(address indexed ra, address indexed ct, address liquidityToken)
+    - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+    - event: RemovedLiquidity(address indexed ra, address indexed ct, uint256 raAmount, uint256 ctAmount, address who)
+    - event: Swapped(address indexed input, address indexed output, uint256 amountIn, uint256 amountOut, address indexed who, uint256 baseFeePercentage, uint256 realizedFeePercentage, uint256 realizedFeeAmount)
+  - name: CorkCT
+    address:
+    # - 0xBC00382f3e63683EE29421f60f6Cb3A2c0069479
+    handler: src/EventHandlers.ts
+    events:
+    - event: Approval(address indexed owner, address indexed spender, uint256 value)
+    - event: EIP712DomainChanged()
+    - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+    - event: Transfer(address indexed from, address indexed to, uint256 value)
+  - name: CorkLPT
+    address:
+    # - 0xc2d100FAB4a9e0A5FD1FA490d102348F52526749
+    handler: src/EventHandlers.ts
+    events:
+    - event: Approval(address indexed owner, address indexed spender, uint256 value)
+    - event: EIP712DomainChanged()
+    - event: Initialized(uint64 version)
+    - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+    - event: Transfer(address indexed from, address indexed to, uint256 value)
+  - name: CorkLVT
+    address:
+    # - 0xbFA73006A6a7dfbf1fE491dEEed32347044a25d5
+    handler: src/EventHandlers.ts
+    events:
+    - event: Approval(address indexed owner, address indexed spender, uint256 value)
+    - event: EIP712DomainChanged()
+    - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
+    - event: Transfer(address indexed from, address indexed to, uint256 value)
+unordered_multichain_mode: true
+field_selection:
+  transaction_fields:
+    - hash
+    - transactionIndex
+  block_fields: []

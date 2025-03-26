@@ -1,0 +1,364 @@
+type CorkHook_AddedLiquidity {
+  id: ID!
+  ra: String!
+  ct: String!
+  raAmount: BigInt!
+  ctAmount: BigInt!
+  mintedLp: BigInt!
+  who: String!
+}
+
+type CorkHook_Initialized {
+  id: ID!
+  ra: String!
+  ct: String!
+  liquidityToken: String!
+}
+
+type CorkHook_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+type CorkHook_RemovedLiquidity {
+  id: ID!
+  ra: String!
+  ct: String!
+  raAmount: BigInt!
+  ctAmount: BigInt!
+  who: String!
+}
+
+type CorkHook_Swapped {
+  id: ID!
+  input: String!
+  output: String!
+  amountIn: BigInt!
+  amountOut: BigInt!
+  who: String!
+  baseFeePercentage: BigInt!
+  realizedFeePercentage: BigInt!
+  realizedFeeAmount: BigInt!
+}
+
+type CorkCore_Cancelled {
+  id: ID!
+  event_id: String!
+  dsId: BigInt!
+  redeemer: String!
+  raAmount: BigInt!
+  swapAmount: BigInt!
+}
+
+type CorkCore_CtRedeemed {
+  id: ID!
+  event_id: String!
+  dsId: BigInt!
+  redeemer: String!
+  amount: BigInt!
+  paReceived: BigInt!
+  raReceived: BigInt!
+}
+
+type CorkCore_DsRedeemed {
+  id: ID!
+  event_id: String!
+  dsId: BigInt!
+  redeemer: String!
+  paUsed: BigInt!
+  dsUsed: BigInt!
+  raReceived: BigInt!
+  dsExchangeRate: BigInt!
+  feePercentage: BigInt!
+  fee: BigInt!
+}
+
+type CorkCore_EarlyRedemptionFeeRateUpdated {
+  id: ID!
+  event_id: String!
+  earlyRedemptionFeeRate: BigInt!
+}
+
+type CorkCore_Initialized {
+  id: ID!
+  version: BigInt!
+}
+
+type CorkCore_InitializedModuleCore {
+  id: ID!
+  event_id: String!
+  pa: String!
+  ra: String!
+  lv: String!
+  expiry: BigInt!
+  initialArp: BigInt!
+  exchangeRateProvider: String!
+}
+
+type CorkCore_Issued {
+  id: ID!
+  event_id: String!
+  dsId: BigInt!
+  expiry: BigInt!
+  ds: String!
+  ct: String!
+  raCtUniPairId: String!
+}
+
+type CorkCore_LiquidationFundsRequested {
+  id: ID!
+  event_id: String!
+  who: String!
+  amount: BigInt!
+}
+
+type CorkCore_LvDeposited {
+  id: ID!
+  event_id: String!
+  depositor: String!
+  received: BigInt!
+  deposited: BigInt!
+}
+
+type CorkCore_LvDepositsStatusUpdated {
+  id: ID!
+  event_id: String!
+  isLVDepositPaused: Boolean!
+}
+
+type CorkCore_LvRedeemEarly {
+  id: ID!
+  event_id: String!
+  redeemer: String!
+  receiver: String!
+  lvBurned: BigInt!
+  ctReceivedFromAmm: BigInt!
+  ctReceivedFromVault: BigInt!
+  dsReceived: BigInt!
+  paReceived: BigInt!
+  raReceivedFromAmm: BigInt!
+  raIdleReceived: BigInt!
+  withdrawalId: String!
+}
+
+type CorkCore_LvWithdrawalsStatusUpdated {
+  id: ID!
+  event_id: String!
+  isLVWithdrawalPaused: Boolean!
+}
+
+type CorkCore_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+type CorkCore_ProfitReceived {
+  id: ID!
+  router: String!
+  amount: BigInt!
+}
+
+type CorkCore_PsmBaseRedemptionFeePercentageUpdated {
+  id: ID!
+  event_id: String!
+  psmBaseRedemptionFeePercentage: BigInt!
+}
+
+type CorkCore_PsmDeposited {
+  id: ID!
+  event_id: String!
+  dsId: BigInt!
+  depositor: String!
+  amount: BigInt!
+  received: BigInt!
+  exchangeRate: BigInt!
+}
+
+type CorkCore_PsmDepositsStatusUpdated {
+  id: ID!
+  event_id: String!
+  isPSMDepositPaused: Boolean!
+}
+
+type CorkCore_PsmRepurchasesStatusUpdated {
+  id: ID!
+  event_id: String!
+  isPSMRepurchasePaused: Boolean!
+}
+
+type CorkCore_PsmWithdrawalsStatusUpdated {
+  id: ID!
+  event_id: String!
+  isPSMWithdrawalPaused: Boolean!
+}
+
+type CorkCore_RateUpdated {
+  id: ID!
+  event_id: String!
+  newRate: BigInt!
+  previousRate: BigInt!
+}
+
+type CorkCore_RepurchaseFeeRateUpdated {
+  id: ID!
+  event_id: String!
+  repurchaseFeeRate: BigInt!
+}
+
+type CorkCore_Repurchased {
+  id: ID!
+  event_id: String!
+  buyer: String!
+  dsId: BigInt!
+  raUsed: BigInt!
+  receivedPa: BigInt!
+  receivedDs: BigInt!
+  feePercentage: BigInt!
+  fee: BigInt!
+  exchangeRates: BigInt!
+}
+
+type CorkCore_RolledOver {
+  id: ID!
+  event_id: String!
+  currentDsId: BigInt!
+  owner: String!
+  prevDsId: BigInt!
+  amountCtRolledOver: BigInt!
+  dsReceived: BigInt!
+  ctReceived: BigInt!
+  paReceived: BigInt!
+}
+
+type CorkCore_RolloverProfitClaimed {
+  id: ID!
+  event_id: String!
+  dsId: BigInt!
+  owner: String!
+  amount: BigInt!
+  profit: BigInt!
+  remainingDs: BigInt!
+}
+
+type CorkCore_SnapshotUpdated {
+  id: ID!
+  snapshotIndex: BigInt!
+  newValue: BigInt!
+}
+
+type CorkCore_TradeExecutionResultFundsReceived {
+  id: ID!
+  event_id: String!
+  who: String!
+  amount: BigInt!
+}
+
+type CorkCore_TradeExecutionResultFundsUsed {
+  id: ID!
+  event_id: String!
+  who: String!
+  amount: BigInt!
+}
+
+type CorkCore_Upgraded {
+  id: ID!
+  implementation: String!
+}
+
+type CorkCore_VaultNavThresholdUpdated {
+  id: ID!
+  event_id: String!
+  navThreshold: BigInt!
+}
+
+type CorkCT_Approval {
+  id: ID!
+  owner: String!
+  spender: String!
+  value: BigInt!
+  srcAddress: String!
+}
+
+type CorkCT_EIP712DomainChanged {
+  id: ID!
+  srcAddress: String!
+}
+
+type CorkCT_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+  srcAddress: String!
+}
+
+type CorkCT_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  value: BigInt!
+  srcAddress: String!
+}
+
+type CorkLPT_Approval {
+  id: ID!
+  owner: String!
+  spender: String!
+  value: BigInt!
+  srcAddress: String!
+}
+
+type CorkLPT_EIP712DomainChanged {
+  id: ID!
+  srcAddress: String!
+}
+
+type CorkLPT_Initialized {
+  id: ID!
+  version: BigInt!
+  srcAddress: String!
+}
+
+type CorkLPT_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+  srcAddress: String!
+}
+
+type CorkLPT_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  value: BigInt!
+  srcAddress: String!
+}
+
+type CorkLVT_Approval {
+  id: ID!
+  owner: String!
+  spender: String!
+  value: BigInt!
+  srcAddress: String!
+}
+
+type CorkLVT_EIP712DomainChanged {
+  id: ID!
+  srcAddress: String!
+}
+
+type CorkLVT_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+  srcAddress: String!
+}
+
+type CorkLVT_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  value: BigInt!
+  srcAddress: String!
+}
