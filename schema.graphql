@@ -1,3 +1,102 @@
+type Account {
+  # id is the chain id and address of the account
+  id: ID!
+  # address is the address of this account
+  address: String!
+
+  # transfersFrom are a list of transfers that this account has made
+  transfersFrom: [TokenTransfer!]! @derivedFrom(field: "from")
+  # transfersTo are a list of transfers that this account has recieved
+  transfersTo: [TokenTransfer!]! @derivedFrom(field: "to")
+  # approvals are a list of approvals that this account has given
+  approvals: [TokenApproval!]! @derivedFrom(field: "owner")
+  # tokens are a list of tokens of this account
+  tokens: [AccountToken!]! @derivedFrom(field: "account")
+  # tokenEntries are a list of token balance changes of this account
+  tokenEntries: [AccountTokenEntry!]! @derivedFrom(field: "account")
+}
+
+type AccountToken {
+  # id is the `chain-tokenAddress-accountAddress`
+  id: ID!
+  account: Account!
+  token: Token!
+  balance: BigInt! @index
+}
+
+type AccountTokenEntry {
+  # id is the chain id, block number and log index [chain-block-logIndex]
+  id: ID!
+  account: Account!
+  token: Token!
+  # amount is the amount of tokens added (positive) or subtracted (negative)
+  amount: BigInt! @index
+  # timestamp is the time of the entry
+  timestamp: Timestamp! @index
+
+  # transfer is the transfer that this entry belongs to
+  transfer: TokenTransfer!
+}
+
+enum TokenType {
+  CT
+  LPT
+  LVT
+}
+
+type Token {
+  # id is the chain id and address of the token
+  id: ID!
+  # address is the address of this token
+  address: String!
+  # typ is the type of this token
+  typ: TokenType! @index
+  # total supply of this token
+  totalSupply: BigInt! @index
+
+  # transfers are a list of transfers of this token
+  transfers: [TokenTransfer!]! @derivedFrom(field: "token")
+  # approvals are a list of active approvals of this token
+  approvals: [TokenApproval!]! @derivedFrom(field: "token")
+  # accounts are a list of account balances of this token
+  accounts: [AccountToken!]! @derivedFrom(field: "token")
+  # accountEntries are a list of account balance changes of this token
+  accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
+}
+
+type TokenTransfer {
+  # id is the chain id, block number and log index [chain-block-logIndex]
+  id: ID!
+  # timestamp is the time of the transfer
+  timestamp: Timestamp! @index
+  # amount is the amount of tokens transferred
+  amount: BigInt! @index
+  # token that was transferred
+  token: Token!
+  # from is the account that sent the tokens
+  from: Account!
+  # to is the account that received the tokens
+  to: Account!
+
+  # entries are a list of account balance changes of this transfer
+  entries: [AccountTokenEntry!]! @derivedFrom(field: "transfer")
+}
+
+type TokenApproval {
+  # id is the chain id, token address, owner address and spender address [chain-token-owner-spender]
+  id: ID!
+  # timestamp is the time of the approval
+  timestamp: Timestamp! @index
+  # amount is the amount of tokens approved
+  amount: BigInt!
+  # token that was approved
+  token: Token!
+  # owner is the account that approved the tokens
+  owner: Account!
+  # spender is the account that is approved to spend the tokens
+  spender: Account!
+}
+
 type CorkHook_AddedLiquidity {
   id: ID!
   ra: String!
