@@ -11,6 +11,8 @@ import type {
   HandlerTypes_eventConfig,
 } from "generated";
 
+import { makeTokenId } from "../helper";
+
 type PreRegisterDynamicContracts = HandlerTypes_eventConfig<unknown>["preRegisterDynamicContracts"];
 
 export function attachEventHandlers<T extends typeof CorkHook>(
@@ -28,6 +30,41 @@ export function attachEventHandlers<T extends typeof CorkHook>(
     contractRegisterOpts
   );
 
+  Hook.Initialized.handlerWithLoader({
+    loader: async ({ event, context }) => Promise.all([
+      context.Pool.getWhere.shareToken_id.eq(makeTokenId(event.chainId, event.params.ct)),
+    ]),
+    handler: async ({ event, context, loaderReturn: [[pool]] }) => {
+      const {
+        chainId,
+        params: {
+          liquidityToken: lpTokenAddress,
+        },
+        srcAddress: managerAddress,
+      } = event;
+
+      // TODO: amm_contract.functions.getPoolManager().call()
+      context.Pool.set(
+        {
+          ...pool,
+          id: pool?.id.replace(":PSM", ":AMM"),
+          typ: "TERM_AMM",
+          managerAddr: managerAddress,
+          shareToken_id: makeTokenId(chainId, lpTokenAddress),
+        }
+      );
+
+      const entity: CorkHook_Initialized = {
+        id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+        ra: event.params.ra,
+        ct: event.params.ct,
+        liquidityToken: event.params.liquidityToken,
+      };
+    
+      context.CorkHook_Initialized.set(entity);
+    },
+  });
+
   Hook.AddedLiquidity.handler(async ({ event, context }) => {
     const entity: CorkHook_AddedLiquidity = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
@@ -40,27 +77,6 @@ export function attachEventHandlers<T extends typeof CorkHook>(
     };
   
     context.CorkHook_AddedLiquidity.set(entity);
-  });
-  
-  Hook.Initialized.handler(async ({ event, context }) => {
-    const entity: CorkHook_Initialized = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      ra: event.params.ra,
-      ct: event.params.ct,
-      liquidityToken: event.params.liquidityToken,
-    };
-  
-    context.CorkHook_Initialized.set(entity);
-  });
-  
-  Hook.OwnershipTransferred.handler(async ({ event, context }) => {
-    const entity: CorkHook_OwnershipTransferred = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      previousOwner: event.params.previousOwner,
-      newOwner: event.params.newOwner,
-    };
-  
-    context.CorkHook_OwnershipTransferred.set(entity);
   });
   
   Hook.RemovedLiquidity.handler(async ({ event, context }) => {
@@ -90,5 +106,15 @@ export function attachEventHandlers<T extends typeof CorkHook>(
     };
   
     context.CorkHook_Swapped.set(entity);
+  });
+
+  Hook.OwnershipTransferred.handler(async ({ event, context }) => {
+    const entity: CorkHook_OwnershipTransferred = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      previousOwner: event.params.previousOwner,
+      newOwner: event.params.newOwner,
+    };
+  
+    context.CorkHook_OwnershipTransferred.set(entity);
   });
 }

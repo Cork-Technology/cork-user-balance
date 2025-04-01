@@ -5,6 +5,9 @@ import type {
   Account,
   AccountToken,
   AccountTokenEntry,
+  CoverTerm,
+  IsolatedMarket,
+  Pool,
   Token,
   TokenApproval,
   TokenTransfer,
@@ -43,6 +46,18 @@ export function makeTokenTransferId(event: Event): string {
 
 export function makeAccountTokenEntryId(event: Event, accountAddress: string): string {
   return `${event.chainId}_${event.block.number}_${event.logIndex}:${accountAddress}`;
+}
+
+export function makeIsolatedMarketId(chainId: number, marketKey: string): string {
+  return `${chainId}:${marketKey}`;
+}
+
+export function makeCoverTermId(chainId: number, marketKey: string, termKey: bigint): string {
+  return `${chainId}:${marketKey}:${termKey}`;
+}
+
+export function makePoolId(chainId: number, poolKey: string): string {
+  return `${chainId}:${poolKey}`;
 }
 
 export function makeAccount(
@@ -132,6 +147,101 @@ export function makeTokenTransfer(
     to_id: makeAccountId(chainId, toAddress),
     amount,
     timestamp: new Date(block.timestamp * 1000),
+  };
+}
+
+export function makeIsolatedMarket(
+  event: Event,
+  uniqueKey: string,
+  key: {
+    paTokenAddr: string,
+    raTokenAddr: string,
+    initialArp: bigint,
+    expiryInterval: bigint,
+    exchangeRateProvider: string,
+  }
+): IsolatedMarket {
+  const { chainId, block } = event;
+  const { paTokenAddr, raTokenAddr, initialArp, expiryInterval, exchangeRateProvider } = key;
+  return {
+    id: makeIsolatedMarketId(chainId, uniqueKey),
+    uniqueKey,
+    paTokenAddr,
+    raTokenAddr,
+    initialArp,
+    expiryInterval,
+    exchangeRateProvider,
+    startBlock: block.number,
+  };
+}
+
+export function makeCoverTerm(
+  event: Event,
+  marketKey: string,
+  termKey: bigint,
+): CoverTerm {
+  const { chainId, block } = event;
+  return {
+    id: makeCoverTermId(chainId, marketKey, termKey),
+    market_id: makeIsolatedMarketId(chainId, marketKey),
+    key: termKey,
+    startBlock: block.number,
+  };
+}
+
+export function makeLvPool(
+  chainId: number,
+  managerAddress: string,
+  marketKey: string,
+  shareTokenAddress: string,
+): Pool {
+  // const poolKey = `${marketKey}:LV`;
+  const market_id = makeIsolatedMarketId(chainId, marketKey);
+  return {
+    id: `${market_id}:LV`,
+    typ: "MARKET_LV",
+    market_id,
+    term_id: undefined,
+    managerAddr: managerAddress,
+    shareToken_id: makeTokenId(chainId, shareTokenAddress),
+  };
+}
+
+export function makePsmPool(
+  chainId: number,
+  marketKey: string,
+  termKey: bigint,
+  managerAddress: string,
+  shareTokenAddress: string,
+): Pool {
+  // const poolKey = `${marketKey}:${termKey}:PSM`;
+  const term_id = makeCoverTermId(chainId, marketKey, termKey);
+  return {
+    id: `${term_id}:PSM`,
+    typ: "TERM_PSM",
+    market_id: undefined,
+    term_id,
+    managerAddr: managerAddress,
+    shareToken_id: makeTokenId(chainId, shareTokenAddress),
+  };
+}
+
+export function makeAmmPool(
+  chainId: number,
+  marketKey: string,
+  termKey: bigint,
+  managerAddress: string,
+  shareTokenAddress: string,
+): Pool {
+  // const poolKey = `${marketKey}:${termKey}:AMM`;
+  const term_id = makeCoverTermId(chainId, marketKey, termKey);
+  return {
+    id: `${term_id}:AMM`,
+    typ: "TERM_AMM",
+    market_id: undefined,
+    term_id,
+    managerAddr: managerAddress,
+    shareToken_id: makeTokenId(chainId, shareTokenAddress),
   };
 }
 

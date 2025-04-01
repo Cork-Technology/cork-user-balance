@@ -13,6 +13,8 @@ import type {
   HandlerTypes_eventConfig,
 } from "generated";
 
+import { createNewToken, makeCoverTerm, makeIsolatedMarket, makeLvPool, makePsmPool } from "../helper";
+
 type ICorkPsm = Pick<typeof CorkCore, "InitializedModuleCore" | "Issued" | "PsmDeposited" | "Cancelled" | "CtRedeemed" | "DsRedeemed" | "Repurchased">;
 type PreRegisterDynamicContracts = HandlerTypes_eventConfig<unknown>["preRegisterDynamicContracts"];
 
@@ -33,12 +35,50 @@ export function attachEventHandlers<T extends ICorkPsm>(
 
   CorkCore.Issued.contractRegister(
     ({ event, context }) => {
+      context.addCorkDS(event.params.ds);
       context.addCorkCT(event.params.ct);
     },
     contractRegisterOpts
   );
 
   CorkCore.InitializedModuleCore.handler(async ({ event, context }) => {
+    const {
+      chainId,
+      params: {
+        id: marketKey,
+        pa: paTokenAddr,
+        ra: raTokenAddr,
+        expiry: expiryInterval,
+        initialArp,
+        exchangeRateProvider,
+        lv: lvTokenAddress,
+      },
+      srcAddress: managerAddress,
+    } = event;
+
+    context.IsolatedMarket.set(
+      makeIsolatedMarket(
+        event,
+        marketKey,
+        {
+          paTokenAddr,
+          raTokenAddr,
+          initialArp,
+          expiryInterval,
+          exchangeRateProvider,
+        }
+      )
+    );
+    createNewToken(chainId, lvTokenAddress, "LVT", context.Token.set);
+    context.Pool.set(
+      makeLvPool(
+        chainId,
+        managerAddress,
+        marketKey,
+        lvTokenAddress,
+      )
+    );
+
     const entity: CorkCore_InitializedModuleCore = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
       event_id: event.params.id,
@@ -54,6 +94,36 @@ export function attachEventHandlers<T extends ICorkPsm>(
   });
   
   CorkCore.Issued.handler(async ({ event, context }) => {
+    const {
+      chainId,
+      params: {
+        id: marketKey,
+        dsId: termKey,
+        ds: dsTokenAddress,
+        ct: coverTokenAddress,
+      },
+      srcAddress: managerAddress,
+    } = event;
+
+    context.CoverTerm.set(
+      makeCoverTerm(
+        event,
+        marketKey,
+        termKey,
+      )
+    );
+    createNewToken(chainId, dsTokenAddress, "DS", context.Token.set);
+    createNewToken(chainId, coverTokenAddress, "CT", context.Token.set);
+    context.Pool.set(
+      makePsmPool(
+        chainId,
+        marketKey,
+        termKey,
+        managerAddress,
+        coverTokenAddress,
+      )
+    );   
+
     const entity: CorkCore_Issued = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
       event_id: event.params.id,

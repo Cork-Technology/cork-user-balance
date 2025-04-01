@@ -2,7 +2,7 @@ type Account {
   # id is the chain id and address of the account
   id: ID!
   # address is the address of this account
-  address: String!
+  address: String! @index
 
   # transfersFrom are a list of transfers that this account has made
   transfersFrom: [TokenTransfer!]! @derivedFrom(field: "from")
@@ -39,6 +39,7 @@ type AccountTokenEntry {
 }
 
 enum TokenType {
+  DS
   CT
   LPT
   LVT
@@ -48,7 +49,7 @@ type Token {
   # id is the chain id and address of the token
   id: ID!
   # address is the address of this token
-  address: String!
+  address: String! @index
   # typ is the type of this token
   typ: TokenType! @index
   # total supply of this token
@@ -62,6 +63,8 @@ type Token {
   accounts: [AccountToken!]! @derivedFrom(field: "token")
   # accountEntries are a list of account balance changes of this token
   accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
+  # pools are a list of pools of this token
+  pools: [Pool!]! @derivedFrom(field: "shareToken")
 }
 
 type TokenTransfer {
@@ -95,6 +98,50 @@ type TokenApproval {
   owner: Account!
   # spender is the account that is approved to spend the tokens
   spender: Account!
+}
+
+type IsolatedMarket 
+  @index(fields: ["paTokenAddr", "raTokenAddr"]) {
+  # id is the chain id and uniqueKey
+  id: ID!
+  uniqueKey: Bytes! @index
+
+  # market key
+  paTokenAddr: String! @index
+  raTokenAddr: String! @index
+  initialArp: BigInt!
+  expiryInterval: BigInt!
+  exchangeRateProvider: String!
+
+  startBlock: Int!
+  pools: [Pool!]! @derivedFrom(field: "market")
+  terms: [CoverTerm!]! @derivedFrom(field: "market")
+}
+
+type CoverTerm {
+  # id is the id of the market and key of the term
+  id: ID!
+  market: IsolatedMarket!
+  key: BigInt!
+
+  startBlock: Int!
+  pools: [Pool!]! @derivedFrom(field: "term")
+}
+
+enum PoolType {
+  MARKET_LV
+  TERM_PSM
+  TERM_AMM
+}
+
+type Pool {
+  # id is the chain id, address of the manager, and key of the pool
+  id: ID!
+  typ: PoolType! @index
+  market: IsolatedMarket # for Market Pools
+  term: CoverTerm # for Term Pools
+  managerAddr: String!
+  shareToken: Token! @index
 }
 
 type CorkHook_AddedLiquidity {
