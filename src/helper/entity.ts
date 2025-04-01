@@ -111,6 +111,7 @@ export function makeAccountTokenEntry(
     transfer_id: makeTokenTransferId(event),
     amount,
     timestamp: new Date(block.timestamp * 1000),
+    blockNumber: block.number,
   };
 }
 
@@ -129,6 +130,7 @@ export function makeTokenApproval(
     spender_id: makeAccountId(chainId, spenderAddress),
     amount,
     timestamp: new Date(block.timestamp * 1000),
+    blockNumber: block.number,
   };
 }
 
@@ -147,6 +149,7 @@ export function makeTokenTransfer(
     to_id: makeAccountId(chainId, toAddress),
     amount,
     timestamp: new Date(block.timestamp * 1000),
+    blockNumber: block.number,
   };
 }
 

@@ -31,8 +31,11 @@ type AccountTokenEntry {
   token: Token!
   # amount is the amount of tokens added (positive) or subtracted (negative)
   amount: BigInt! @index
+
   # timestamp is the time of the entry
   timestamp: Timestamp! @index
+  # blockNumber is the block number of the entry
+  blockNumber: Int! @index
 
   # transfer is the transfer that this entry belongs to
   transfer: TokenTransfer!
@@ -43,6 +46,8 @@ enum TokenType {
   CT
   LPT
   LVT
+  ERC20
+  ERC4626
 }
 
 type Token {
@@ -53,7 +58,7 @@ type Token {
   # typ is the type of this token
   typ: TokenType! @index
   # total supply of this token
-  totalSupply: BigInt! @index
+  totalSupply: BigInt @index
 
   # transfers are a list of transfers of this token
   transfers: [TokenTransfer!]! @derivedFrom(field: "token")
@@ -72,6 +77,8 @@ type TokenTransfer {
   id: ID!
   # timestamp is the time of the transfer
   timestamp: Timestamp! @index
+  # blockNumber is the block number of the transfer
+  blockNumber: Int! @index
   # amount is the amount of tokens transferred
   amount: BigInt! @index
   # token that was transferred
@@ -90,6 +97,8 @@ type TokenApproval {
   id: ID!
   # timestamp is the time of the approval
   timestamp: Timestamp! @index
+  # blockNumber is the block number of the approval
+  blockNumber: Int! @index
   # amount is the amount of tokens approved
   amount: BigInt!
   # token that was approved
@@ -135,7 +144,6 @@ enum PoolType {
 }
 
 type Pool {
-  # id is the chain id, address of the manager, and key of the pool
   id: ID!
   typ: PoolType! @index
   market: IsolatedMarket # for Market Pools

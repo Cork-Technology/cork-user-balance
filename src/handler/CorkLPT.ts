@@ -158,7 +158,7 @@ export function attachEventHandlers<T extends typeof CorkLPT>(
 
       if (value > 0n && from !== to) {
         if (from === ZERO_ADDRESS) {
-          context.Token.set({ ...token, totalSupply: token.totalSupply + value });
+          context.Token.set({ ...token, totalSupply: (token.totalSupply ?? 0n) + value });
         } else {
           context.AccountTokenEntry.set(
             makeAccountTokenEntry(
@@ -178,7 +178,7 @@ export function attachEventHandlers<T extends typeof CorkLPT>(
         }
 
         if (to === ZERO_ADDRESS) {
-          context.Token.set({ ...token, totalSupply: token.totalSupply - value });
+          context.Token.set({ ...token, totalSupply: (token.totalSupply ?? 0n) - value });
         } else {
           context.AccountTokenEntry.set(
             makeAccountTokenEntry(
