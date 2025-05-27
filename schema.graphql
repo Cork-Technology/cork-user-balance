@@ -150,6 +150,33 @@ type Pool {
   term: CoverTerm # for Term Pools
   managerAddr: String!
   shareToken: Token! @index
+
+  # assets are a list of assets of this pool
+  assets: [PoolAsset!]! @derivedFrom(field: "pool")
+  # assetEntries are a list of asset balance changes of this pool
+  assetEntries: [PoolAssetEntry!]! @derivedFrom(field: "pool")
+}
+
+type PoolAsset {
+  # id is the `chain-contractAddress-tokenAddress`
+  id: ID!
+  pool: Pool!
+  token: Token!
+  balance: BigInt! @index
+}
+
+type PoolAssetEntry {
+  # id is the `chain:contractAddress-tokenAddress`
+  id: ID!
+  pool: Pool!
+  token: Token! @index
+  # amount is the amount of tokens added (positive) or subtracted (negative)
+  amount: BigInt! @index
+
+  # timestamp is the time of the entry
+  timestamp: Timestamp! @index
+  # blockNumber is the block number of the entry
+  blockNumber: Int! @index
 }
 
 type CorkHook_AddedLiquidity {

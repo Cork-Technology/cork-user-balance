@@ -8,6 +8,8 @@ import type {
   CoverTerm,
   IsolatedMarket,
   Pool,
+  PoolAsset,
+  PoolAssetEntry,
   Token,
   TokenApproval,
   TokenTransfer,
@@ -58,6 +60,18 @@ export function makeCoverTermId(chainId: number, marketKey: string, termKey: big
 
 export function makePoolId(chainId: number, poolKey: string): string {
   return `${chainId}:${poolKey}`;
+}
+
+export function makePoolAssetId(
+  chainId: number,
+  poolKey: string,
+  tokenAddress: string,
+): string {
+  return `${chainId}:${tokenAddress}:${poolKey}`;
+}
+
+export function makePoolAssetEntryId(event: Event, poolKey: string): string {
+  return `${event.chainId}_${event.block.number}_${event.logIndex}:${poolKey}`;
 }
 
 export function makeAccount(
@@ -248,6 +262,37 @@ export function makeAmmPool(
   };
 }
 
+export function makePoolAsset(
+  chainId: number,
+  poolKey: string,
+  tokenAddress: string,
+  balance: bigint,
+): PoolAsset {
+  return {
+    id: makePoolAssetId(chainId, poolKey, tokenAddress),
+    pool_id: makePoolId(chainId, poolKey),
+    token_id: makeTokenId(chainId, tokenAddress),
+    balance,
+  };
+}
+
+export function makePoolAssetEntry(
+  event: Event,
+  poolKey: string,
+  tokenAddress: string,
+  amount: bigint,
+): PoolAssetEntry {
+  const { chainId, block } = event;
+  return {
+    id: makePoolAssetEntryId(event, poolKey),
+    pool_id: makePoolId(chainId, poolKey),
+    token_id: makeTokenId(chainId, tokenAddress),
+    amount,
+    timestamp: new Date(block.timestamp * 1000),
+    blockNumber: block.number,
+  };
+}
+
 export function createNewAccount(
   chainId: number,
   accountAddress: string,
@@ -280,16 +325,27 @@ export function createNewAccountToken(
   return accountToken;
 }
 
-export function addToBalance(
-  accountToken: AccountToken,
+export function createNewPoolAsset(
+  chainId: number,
+  poolKey: string,
+  tokenAddress: string,
+  setPoolAsset: (poolAsset: PoolAsset) => void
+): PoolAsset {
+  const poolAsset = makePoolAsset(chainId, poolKey, tokenAddress, 0n);
+  setPoolAsset(poolAsset);
+  return poolAsset;
+}
+
+export function addToBalance<T extends AccountToken | PoolAsset>(
+  accountToken: T,
   amount: bigint,
-): AccountToken {
+): T {
   return { ...accountToken, balance: accountToken.balance + amount };
 }
 
-export function subFromBalance(
-  accountToken: AccountToken,
+export function subFromBalance<T extends AccountToken | PoolAsset>(
+  accountToken: T,
   amount: bigint,
-): AccountToken {
+): T {
   return { ...accountToken, balance: accountToken.balance - amount };
 }
