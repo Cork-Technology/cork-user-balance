@@ -85,6 +85,13 @@ networks:
     - event: EIP712DomainChanged()
     - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
     - event: Transfer(address indexed from, address indexed to, uint256 value)
+  - name: Withdrawal
+    address:
+    - 0xf27e7e8A854211E030cfCd39350827CC15eFf721
+    handler: src/EventHandlers.ts
+    events:
+    - event: WithdrawalClaimed(bytes32 indexed withdrawalId, address indexed owner)
+    - event: WithdrawalRequested(bytes32 indexed withdrawalId, address indexed owner, uint256 claimableAt)
 unordered_multichain_mode: true
 field_selection:
   transaction_fields:

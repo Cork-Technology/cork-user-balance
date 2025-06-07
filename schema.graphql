@@ -543,3 +543,16 @@ type CorkLVT_Transfer {
   value: BigInt!
   srcAddress: String!
 }
+
+type Withdrawal_WithdrawalClaimed {
+  id: ID!
+  withdrawalId: String!
+  owner: String!
+}
+
+type Withdrawal_WithdrawalRequested {
+  id: ID!
+  withdrawalId: String!
+  owner: String!
+  claimableAt: BigInt!
+}

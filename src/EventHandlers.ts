@@ -36,6 +36,9 @@ import {
   CorkCT,
   CorkLPT,
   CorkLVT,
+  Withdrawal,
+  Withdrawal_WithdrawalClaimed,
+  Withdrawal_WithdrawalRequested,
 } from "generated";
 
 import { attachEventHandlers as attachEventHandlersPSM } from "./handler/CorkPSM";
@@ -295,4 +298,25 @@ CorkCore.VaultNavThresholdUpdated.handler(async ({ event, context }) => {
   };
 
   context.CorkCore_VaultNavThresholdUpdated.set(entity);
+});
+
+Withdrawal.WithdrawalClaimed.handler(async ({ event, context }) => {
+  const entity: Withdrawal_WithdrawalClaimed = {
+    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+    withdrawalId: event.params.withdrawalId,
+    owner: event.params.owner,
+  };
+
+  context.Withdrawal_WithdrawalClaimed.set(entity);
+});
+
+Withdrawal.WithdrawalRequested.handler(async ({ event, context }) => {
+  const entity: Withdrawal_WithdrawalRequested = {
+    id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+    withdrawalId: event.params.withdrawalId,
+    owner: event.params.owner,
+    claimableAt: event.params.claimableAt,
+  };
+
+  context.Withdrawal_WithdrawalRequested.set(entity);
 });
