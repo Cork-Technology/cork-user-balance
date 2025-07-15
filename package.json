@@ -9,25 +9,26 @@
     "codegen": "envio codegen",
     "dev": "envio dev",
     "test": "pnpm mocha",
-    "start": "ts-node generated/src/Index.bs.js"
+    "start": "envio start"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.11",    
+    "@types/chai": "^4.3.20",
     "@types/mocha": "10.0.6",
     "@types/node": "20.8.8",
-    "ts-mocha": "^10.0.0",
-    "ts-node": "10.9.1",
-    "typescript": "5.2.2",
     "chai": "4.3.10",
-    "mocha": "10.2.0"
-  },
-  "dependencies": {
-    "envio": "2.21.5"
+    "envio": "2.25.1",
+    "mocha": "10.2.0",
+    "ts-mocha": "^10.1.0",
+    "ts-node": "10.9.1",
+    "typescript": "5.2.2"
   },
   "optionalDependencies": {
-    "generated": "./generated"
+    "generated": "link:generated"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@envio-dev/hypersync-client": "0.6.5"
   }
 }
