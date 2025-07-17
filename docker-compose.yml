@@ -41,7 +41,7 @@ services:
       - envio-indexer-network
   envio-indexer:
     container_name: cork-user-balance
-    build: .
+    image: ${DOCKER_IMAGE}
     ports:
       - "8081:8081"
     depends_on:
