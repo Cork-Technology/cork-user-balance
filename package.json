@@ -19,7 +19,8 @@
     "mocha": "10.2.0",
     "ts-mocha": "^10.1.0",
     "ts-node": "10.9.1",
-    "typescript": "5.2.2"
+    "typescript": "5.2.2",
+    "envio": "2.25.1"
   },
   "optionalDependencies": {
     "generated": "link:generated"
@@ -28,7 +29,6 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@envio-dev/hypersync-client": "0.6.5",
-    "envio": "2.25.1"
+    "@envio-dev/hypersync-client": "0.6.5"
   }
 }

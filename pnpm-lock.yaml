@@ -11,9 +11,6 @@ importers:
       '@envio-dev/hypersync-client':
         specifier: 0.6.5
         version: 0.6.5
-      envio:
-        specifier: 2.25.1
-        version: 2.25.1(typescript@5.2.2)
     devDependencies:
       '@types/chai':
         specifier: ^4.3.20
@@ -27,6 +24,9 @@ importers:
       chai:
         specifier: 4.3.10
         version: 4.3.10
+      envio:
+        specifier: 2.25.1
+        version: 2.25.1(typescript@5.2.2)
       mocha:
         specifier: 10.2.0
         version: 10.2.0
