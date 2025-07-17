@@ -21,13 +21,10 @@ on:
         required: false
         default: 'staging'
 
-env:                       
-  APP_NAME:                  ${{ vars.APP_NAME           || secrets.APP_NAME }}
-  DOCKER_IMAGE:              ${{ vars.DOCKER_IMAGE       || secrets.DOCKER_IMAGE }}   
-  DOCKER_REGISTRY:           ${{ vars.DOCKER_REGISTRY || secrets.DOCKER_REGISTRY || 'docker.io' }}
-  DOCKER_REGISTRY_USERNAME:  ${{ vars.DOCKER_REGISTRY_USERNAME || secrets.DOCKER_REGISTRY_USERNAME || github.actor }}
-  DOCKER_REGISTRY_PASSWORD:  ${{ vars.DOCKER_REGISTRY_PASSWORD || secrets.DOCKER_REGISTRY_PASSWORD }}
-  PHALA_CLOUD_API_KEY:       ${{ vars.PHALA_CLOUD_API_KEY || secrets.PHALA_CLOUD_API_KEY }}
+env:           
+  DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
+  DOCKER_REGISTRY: 'docker.io'
+  APP_NAME: 'cork-user-balance'
 
 jobs:
   test-build-push-deploy:
@@ -39,28 +36,40 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v2
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
         with:
           version: 9.7.1
           run_install: false
 
-      - uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'pnpm'
 
-      - name: Build & Test
+      - name: Install dependencies, build, and test
         run: |
           pnpm install --frozen-lockfile
-          pnpm codegen && pnpm build
+          pnpm codegen
+          pnpm build
 
       - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
-          password: ${{ env.DOCKER_REGISTRY_PASSWORD }}
+          username: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
 
       - name: Build & Push Docker image
         uses: docker/build-push-action@v5
@@ -68,24 +77,21 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ env.APP_NAME }}-cache
+          cache-to: type=gha,scope=${{ env.APP_NAME }}-cache,mode=max
 
-      - name: Update Docker Compose
+      - name: Update Docker Compose for deployment
         run: |
           sed -i "s|\${DOCKER_IMAGE}|${DOCKER_IMAGE}|g" ./docker-compose.yml
+
       - name: Deploy to Phala Cloud
         uses: Leechael/phala-deploy-action@v2
         with:
           phala-api-key: ${{ secrets.PHALA_CLOUD_API_KEY }}
-          cvm-name: ''
+          cvm-name: ${{ env.APP_NAME }}
           compose-file:     './docker-compose.yml'
-          vcpu: '2'                         # Default: '2'
-          memory: '2048'                    # Default: '2048'
-          disk-size: '10'                   # Default: '40'
-          envs: |                           # Environment variables in YAML format (will be converted to dotenv)
-            EXAMPLE_ENV_VAR: 'none'
-          app-id: ''                        # App ID of existing CVM to (if updating)
-          node-id: ''                       # Node ID (Teepod ID)
-          base-image: ''                    # Base image to use for the CVM
+          vcpu: '2'                         
+          memory: '2048'                    
+          disk-size: '10'                  
