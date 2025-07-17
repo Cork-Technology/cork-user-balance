@@ -93,4 +93,5 @@ jobs:
           compose-file:     './docker-compose.yml'
           vcpu: '2'                         
           memory: '2048'                    
-          disk-size: '10'                  
+          disk-size: '10'            
+          app-id: ${{ secrets.PHALA_APP_ID }}
