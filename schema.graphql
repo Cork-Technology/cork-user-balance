@@ -1,23 +1,292 @@
-type Account {
-  # id is the chain id and address of the account
-  id: ID!
-  # address is the address of this account
-  address: String! @index
+# Schema definition for the custom Envio indexer.
+#
+# This file combines the automatically generated event entities with
+# additional domain models for accounts, tokens, pools and prices.
 
-  # transfersFrom are a list of transfers that this account has made
+############################
+# Event Entities
+############################
+
+type CorkConfig_CorkPoolSet {
+  id: ID!
+  corkPool: String!
+}
+
+type CorkConfig_Paused {
+  id: ID!
+  account: String!
+}
+
+type CorkConfig_RoleAdminChanged {
+  id: ID!
+  role: String!
+  previousAdminRole: String!
+  newAdminRole: String!
+}
+
+type CorkConfig_RoleGranted {
+  id: ID!
+  role: String!
+  account: String!
+  sender: String!
+}
+
+type CorkConfig_RoleRevoked {
+  id: ID!
+  role: String!
+  account: String!
+  sender: String!
+}
+
+type CorkConfig_TreasurySet {
+  id: ID!
+  treasury: String!
+}
+
+type CorkConfig_Unpaused {
+  id: ID!
+  account: String!
+}
+
+type CorkPool_BaseRedemptionFeePercentageUpdated {
+  id: ID!
+  event_id: String!
+  baseRedemptionFeePercentage: BigInt!
+}
+
+type CorkPool_Deposit {
+  id: ID!
+  marketId: String!
+  sender: String!
+  owner: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+type CorkPool_DepositPaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_DepositUnpaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_Initialized {
+  id: ID!
+  version: BigInt!
+}
+
+type CorkPool_MarketCreated {
+  id: ID!
+  event_id: String!
+  referenceAsset: String!
+  collateralAsset: String!
+  expiry: BigInt!
+  exchangeRateProvider: String!
+  principalToken: String!
+  swapToken: String!
+}
+
+type CorkPool_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+
+
+type CorkPool_ReturnPaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_ReturnUnpaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_Swap {
+  id: ID!
+  event_id: String!
+  swaper: String!
+  paUsed: BigInt!
+  swapTokenUsed: BigInt!
+  raReceived: BigInt!
+  dsExchangeRate: BigInt!
+  feePercentage: BigInt!
+  fee: BigInt!
+}
+
+type CorkPool_SwapPaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_SwapUnpaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_UnwindSwap {
+  id: ID!
+  event_id: String!
+  buyer: String!
+  raUsed: BigInt!
+  receivedReferenceAsset: BigInt!
+  receivedSwapToken: BigInt!
+  feePercentage: BigInt!
+  fee: BigInt!
+  exchangeRates: BigInt!
+}
+
+type CorkPool_UnwindSwapFeeRateUpdated {
+  id: ID!
+  event_id: String!
+  unwindSwapFeeRate: BigInt!
+}
+
+type CorkPool_UnwindSwapPaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_UnwindSwapUnpaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_Upgraded {
+  id: ID!
+  implementation: String!
+}
+
+
+
+type CorkPool_WithdrawExtended {
+  id: ID!
+  marketId: String!
+  sender: String!
+  owner: String!
+  assets0: BigInt!
+  assets1: BigInt!
+  shares0: BigInt!
+  shares1: BigInt!
+}
+
+type CorkPool_WithdrawalPaused {
+  id: ID!
+  marketId: String!
+}
+
+type CorkPool_WithdrawalUnpaused {
+  id: ID!
+  marketId: String!
+}
+
+type ExchangeRateProvider_RateUpdated {
+  id: ID!
+  event_id: String!
+  newRate: BigInt!
+}
+
+type SharesFactory_CorkPoolChanged {
+  id: ID!
+  oldCorkPool: String!
+  newCorkPool: String!
+}
+
+type SharesFactory_Initialized {
+  id: ID!
+  version: BigInt!
+}
+
+type SharesFactory_OwnershipTransferred {
+  id: ID!
+  previousOwner: String!
+  newOwner: String!
+}
+
+type SharesFactory_SharesDeployed {
+  id: ID!
+  collateralAsset: String!
+  principalToken: String!
+  swapToken: String!
+}
+
+type SharesFactory_Upgraded {
+  id: ID!
+  implementation: String!
+}
+
+type CorkPT_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  amount: BigInt!
+}
+type CorkST_Transfer {
+  id: ID!
+  from: String!
+  to: String!
+  amount: BigInt!
+}
+type CorkST_Approval {
+  id: ID!
+  owner: String!
+  spender: String!
+  amount: BigInt!
+  srcAddress: String!
+}
+type CorkPT_Approval {
+  id: ID!
+  owner: String!
+  spender: String!
+  amount: BigInt!
+  srcAddress: String!
+}
+
+type CorkPT_Withdraw {
+  id: ID!
+  caller: String!
+  receiver: String!
+  owner: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+type CorkPT_Deposit {
+  id: ID!
+  caller: String!
+  owner: String!
+  assets: BigInt!
+  shares: BigInt!
+}
+
+
+############################
+# Domain Models
+############################
+
+enum TokenType {
+  CPT
+  CST
+  CA
+  REF
+}
+
+type Account {
+  id: ID!
+  address: String! @index
   transfersFrom: [TokenTransfer!]! @derivedFrom(field: "from")
-  # transfersTo are a list of transfers that this account has recieved
   transfersTo: [TokenTransfer!]! @derivedFrom(field: "to")
-  # approvals are a list of approvals that this account has given
   approvals: [TokenApproval!]! @derivedFrom(field: "owner")
-  # tokens are a list of tokens of this account
   tokens: [AccountToken!]! @derivedFrom(field: "account")
-  # tokenEntries are a list of token balance changes of this account
   tokenEntries: [AccountTokenEntry!]! @derivedFrom(field: "account")
 }
 
 type AccountToken {
-  # id is the `chain-tokenAddress-accountAddress`
   id: ID!
   account: Account!
   token: Token!
@@ -25,140 +294,62 @@ type AccountToken {
 }
 
 type AccountTokenEntry {
-  # id is the chain id, block number and log index [chain-block-logIndex]
   id: ID!
   account: Account!
   token: Token!
-  # amount is the amount of tokens added (positive) or subtracted (negative)
   amount: BigInt! @index
-
-  # timestamp is the time of the entry
   timestamp: Timestamp! @index
-  # blockNumber is the block number of the entry
   blockNumber: Int! @index
-
-  # transfer is the transfer that this entry belongs to
-  transfer: TokenTransfer!
-}
-
-enum TokenType {
-  DS
-  CT
-  LPT
-  LVT
-  ERC20
-  ERC4626
+  transfer: TokenTransfer
 }
 
 type Token {
-  # id is the chain id and address of the token
   id: ID!
-  # address is the address of this token
   address: String! @index
-  # typ is the type of this token
   typ: TokenType! @index
-  # total supply of this token
   totalSupply: BigInt @index
-
-  # transfers are a list of transfers of this token
   transfers: [TokenTransfer!]! @derivedFrom(field: "token")
-  # approvals are a list of active approvals of this token
   approvals: [TokenApproval!]! @derivedFrom(field: "token")
-  # accounts are a list of account balances of this token
   accounts: [AccountToken!]! @derivedFrom(field: "token")
-  # accountEntries are a list of account balance changes of this token
   accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
-  # pools are a list of pools of this token
-  pools: [Pool!]! @derivedFrom(field: "shareToken")
 }
 
 type TokenTransfer {
-  # id is the chain id, block number and log index [chain-block-logIndex]
   id: ID!
-  # timestamp is the time of the transfer
   timestamp: Timestamp! @index
-  # blockNumber is the block number of the transfer
   blockNumber: Int! @index
-  # amount is the amount of tokens transferred
   amount: BigInt! @index
-  # token that was transferred
   token: Token!
-  # from is the account that sent the tokens
   from: Account!
-  # to is the account that received the tokens
   to: Account!
-
-  # entries are a list of account balance changes of this transfer
   entries: [AccountTokenEntry!]! @derivedFrom(field: "transfer")
 }
 
 type TokenApproval {
-  # id is the chain id, token address, owner address and spender address [chain-token-owner-spender]
   id: ID!
-  # timestamp is the time of the approval
   timestamp: Timestamp! @index
-  # blockNumber is the block number of the approval
   blockNumber: Int! @index
-  # amount is the amount of tokens approved
   amount: BigInt!
-  # token that was approved
   token: Token!
-  # owner is the account that approved the tokens
   owner: Account!
-  # spender is the account that is approved to spend the tokens
   spender: Account!
-}
-
-type IsolatedMarket 
-  @index(fields: ["paTokenAddr", "raTokenAddr"]) {
-  # id is the chain id and uniqueKey
-  id: ID!
-  uniqueKey: Bytes! @index
-
-  # market key
-  paTokenAddr: String! @index
-  raTokenAddr: String! @index
-  initialArp: BigInt!
-  expiryInterval: BigInt!
-  exchangeRateProvider: String!
-
-  startBlock: Int!
-  pools: [Pool!]! @derivedFrom(field: "market")
-  terms: [CoverTerm!]! @derivedFrom(field: "market")
-}
-
-type CoverTerm {
-  # id is the id of the market and key of the term
-  id: ID!
-  market: IsolatedMarket!
-  key: BigInt!
-
-  startBlock: Int!
-  pools: [Pool!]! @derivedFrom(field: "term")
-}
-
-enum PoolType {
-  MARKET_LV
-  TERM_PSM
-  TERM_AMM
 }
 
 type Pool {
   id: ID!
-  typ: PoolType! @index
-  market: IsolatedMarket # for Market Pools
-  term: CoverTerm # for Term Pools
-  managerAddr: String!
-  shareToken: Token! @index
-
-  # assets are a list of assets of this pool
+  poolId: Bytes! @index
+  principalTokenAddr: String! @index
+  swapTokenAddr: String! @index
+  collateralAssetAddr: String! @index
+  referenceAssetAddr: String! @index
+  exchangeRateProviderAddr: String! @index
+  expiry: BigInt!
+  startBlock: Int!
   assets: [PoolAsset!]! @derivedFrom(field: "pool")
-  # assetEntries are a list of asset balance changes of this pool
   assetEntries: [PoolAssetEntry!]! @derivedFrom(field: "pool")
 }
 
 type PoolAsset {
-  # id is the `chain-contractAddress-tokenAddress`
   id: ID!
   pool: Pool!
   token: Token!
@@ -166,393 +357,20 @@ type PoolAsset {
 }
 
 type PoolAssetEntry {
-  # id is the `chain:contractAddress-tokenAddress`
   id: ID!
   pool: Pool!
   token: Token! @index
-  # amount is the amount of tokens added (positive) or subtracted (negative)
   amount: BigInt! @index
-
-  # timestamp is the time of the entry
   timestamp: Timestamp! @index
-  # blockNumber is the block number of the entry
   blockNumber: Int! @index
 }
 
-type CorkHook_AddedLiquidity {
+type AssetPrice {
   id: ID!
-  ra: String!
-  ct: String!
-  raAmount: BigInt!
-  ctAmount: BigInt!
-  mintedLp: BigInt!
-  who: String!
-}
-
-type CorkHook_Initialized {
-  id: ID!
-  ra: String!
-  ct: String!
-  liquidityToken: String!
-}
-
-type CorkHook_OwnershipTransferred {
-  id: ID!
-  previousOwner: String!
-  newOwner: String!
-}
-
-type CorkHook_RemovedLiquidity {
-  id: ID!
-  ra: String!
-  ct: String!
-  raAmount: BigInt!
-  ctAmount: BigInt!
-  who: String!
-}
-
-type CorkHook_Swapped {
-  id: ID!
-  input: String!
-  output: String!
-  amountIn: BigInt!
-  amountOut: BigInt!
-  who: String!
-  baseFeePercentage: BigInt!
-  realizedFeePercentage: BigInt!
-  realizedFeeAmount: BigInt!
-}
-
-type CorkCore_Cancelled {
-  id: ID!
-  event_id: String!
-  dsId: BigInt!
-  redeemer: String!
-  raAmount: BigInt!
-  swapAmount: BigInt!
-}
-
-type CorkCore_CtRedeemed {
-  id: ID!
-  event_id: String!
-  dsId: BigInt!
-  redeemer: String!
-  amount: BigInt!
-  paReceived: BigInt!
-  raReceived: BigInt!
-}
-
-type CorkCore_DsRedeemed {
-  id: ID!
-  event_id: String!
-  dsId: BigInt!
-  redeemer: String!
-  paUsed: BigInt!
-  dsUsed: BigInt!
-  raReceived: BigInt!
-  dsExchangeRate: BigInt!
-  feePercentage: BigInt!
-  fee: BigInt!
-}
-
-type CorkCore_EarlyRedemptionFeeRateUpdated {
-  id: ID!
-  event_id: String!
-  earlyRedemptionFeeRate: BigInt!
-}
-
-type CorkCore_Initialized {
-  id: ID!
-  version: BigInt!
-}
-
-type CorkCore_InitializedModuleCore {
-  id: ID!
-  event_id: String!
-  pa: String!
-  ra: String!
-  lv: String!
-  expiry: BigInt!
-  initialArp: BigInt!
-  exchangeRateProvider: String!
-}
-
-type CorkCore_Issued {
-  id: ID!
-  event_id: String!
-  dsId: BigInt!
-  expiry: BigInt!
-  ds: String!
-  ct: String!
-  raCtUniPairId: String!
-}
-
-type CorkCore_LiquidationFundsRequested {
-  id: ID!
-  event_id: String!
-  who: String!
-  amount: BigInt!
-}
-
-type CorkCore_LvDeposited {
-  id: ID!
-  event_id: String!
-  depositor: String!
-  received: BigInt!
-  deposited: BigInt!
-}
-
-type CorkCore_LvDepositsStatusUpdated {
-  id: ID!
-  event_id: String!
-  isLVDepositPaused: Boolean!
-}
-
-type CorkCore_LvRedeemEarly {
-  id: ID!
-  event_id: String!
-  redeemer: String!
-  receiver: String!
-  lvBurned: BigInt!
-  ctReceivedFromAmm: BigInt!
-  ctReceivedFromVault: BigInt!
-  dsReceived: BigInt!
-  paReceived: BigInt!
-  raReceivedFromAmm: BigInt!
-  raIdleReceived: BigInt!
-  withdrawalId: String!
-}
-
-type CorkCore_LvWithdrawalsStatusUpdated {
-  id: ID!
-  event_id: String!
-  isLVWithdrawalPaused: Boolean!
-}
-
-type CorkCore_OwnershipTransferred {
-  id: ID!
-  previousOwner: String!
-  newOwner: String!
-}
-
-type CorkCore_ProfitReceived {
-  id: ID!
-  router: String!
-  amount: BigInt!
-}
-
-type CorkCore_PsmBaseRedemptionFeePercentageUpdated {
-  id: ID!
-  event_id: String!
-  psmBaseRedemptionFeePercentage: BigInt!
-}
-
-type CorkCore_PsmDeposited {
-  id: ID!
-  event_id: String!
-  dsId: BigInt!
-  depositor: String!
-  amount: BigInt!
-  received: BigInt!
-  exchangeRate: BigInt!
-}
-
-type CorkCore_PsmDepositsStatusUpdated {
-  id: ID!
-  event_id: String!
-  isPSMDepositPaused: Boolean!
-}
-
-type CorkCore_PsmRepurchasesStatusUpdated {
-  id: ID!
-  event_id: String!
-  isPSMRepurchasePaused: Boolean!
-}
-
-type CorkCore_PsmWithdrawalsStatusUpdated {
-  id: ID!
-  event_id: String!
-  isPSMWithdrawalPaused: Boolean!
-}
-
-type CorkCore_RateUpdated {
-  id: ID!
-  event_id: String!
-  newRate: BigInt!
-  previousRate: BigInt!
-}
-
-type CorkCore_RepurchaseFeeRateUpdated {
-  id: ID!
-  event_id: String!
-  repurchaseFeeRate: BigInt!
-}
-
-type CorkCore_Repurchased {
-  id: ID!
-  event_id: String!
-  buyer: String!
-  dsId: BigInt!
-  raUsed: BigInt!
-  receivedPa: BigInt!
-  receivedDs: BigInt!
-  feePercentage: BigInt!
-  fee: BigInt!
-  exchangeRates: BigInt!
-}
-
-type CorkCore_RolledOver {
-  id: ID!
-  event_id: String!
-  currentDsId: BigInt!
-  owner: String!
-  prevDsId: BigInt!
-  amountCtRolledOver: BigInt!
-  dsReceived: BigInt!
-  ctReceived: BigInt!
-  paReceived: BigInt!
-}
-
-type CorkCore_RolloverProfitClaimed {
-  id: ID!
-  event_id: String!
-  dsId: BigInt!
-  owner: String!
-  amount: BigInt!
-  profit: BigInt!
-  remainingDs: BigInt!
-}
-
-type CorkCore_SnapshotUpdated {
-  id: ID!
-  snapshotIndex: BigInt!
-  newValue: BigInt!
-}
-
-type CorkCore_TradeExecutionResultFundsReceived {
-  id: ID!
-  event_id: String!
-  who: String!
-  amount: BigInt!
-}
-
-type CorkCore_TradeExecutionResultFundsUsed {
-  id: ID!
-  event_id: String!
-  who: String!
-  amount: BigInt!
-}
-
-type CorkCore_Upgraded {
-  id: ID!
-  implementation: String!
-}
-
-type CorkCore_VaultNavThresholdUpdated {
-  id: ID!
-  event_id: String!
-  navThreshold: BigInt!
-}
-
-type CorkCT_Approval {
-  id: ID!
-  owner: String!
-  spender: String!
-  value: BigInt!
-  srcAddress: String!
-}
-
-type CorkCT_EIP712DomainChanged {
-  id: ID!
-  srcAddress: String!
-}
-
-type CorkCT_OwnershipTransferred {
-  id: ID!
-  previousOwner: String!
-  newOwner: String!
-  srcAddress: String!
-}
-
-type CorkCT_Transfer {
-  id: ID!
-  from: String!
-  to: String!
-  value: BigInt!
-  srcAddress: String!
-}
-
-type CorkLPT_Approval {
-  id: ID!
-  owner: String!
-  spender: String!
-  value: BigInt!
-  srcAddress: String!
-}
-
-type CorkLPT_EIP712DomainChanged {
-  id: ID!
-  srcAddress: String!
-}
-
-type CorkLPT_Initialized {
-  id: ID!
-  version: BigInt!
-  srcAddress: String!
-}
-
-type CorkLPT_OwnershipTransferred {
-  id: ID!
-  previousOwner: String!
-  newOwner: String!
-  srcAddress: String!
-}
-
-type CorkLPT_Transfer {
-  id: ID!
-  from: String!
-  to: String!
-  value: BigInt!
-  srcAddress: String!
-}
-
-type CorkLVT_Approval {
-  id: ID!
-  owner: String!
-  spender: String!
-  value: BigInt!
-  srcAddress: String!
-}
-
-type CorkLVT_EIP712DomainChanged {
-  id: ID!
-  srcAddress: String!
-}
-
-type CorkLVT_OwnershipTransferred {
-  id: ID!
-  previousOwner: String!
-  newOwner: String!
-  srcAddress: String!
-}
-
-type CorkLVT_Transfer {
-  id: ID!
-  from: String!
-  to: String!
-  value: BigInt!
-  srcAddress: String!
-}
-
-type Withdrawal_WithdrawalClaimed {
-  id: ID!
-  withdrawalId: String!
-  owner: String!
-}
-
-type Withdrawal_WithdrawalRequested {
-  id: ID!
-  withdrawalId: String!
-  owner: String!
-  claimableAt: BigInt!
+  lastAnswer: BigInt!
+  decimals: Int!
+  updatedAt: Timestamp! @index
+  toCurrency: String!
+  fromToken: Token!
+  toToken: Token!
 }
