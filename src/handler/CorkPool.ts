@@ -43,12 +43,14 @@ import {
 export function attachEventHandlers<T extends typeof CorkPool>(
   Pool: T,
 ): void {
+  // ========================================
+  // MAIN BUSINESS LOGIC HANDLERS
+  // ========================================
+
   /**
-   * Handle the creation of new markets. A market represents a unique
-   * combination of collateral and reference assets along with a pair of
-   * share tokens (principal and swap). When a market is created we
-   * persist the pool and instantiate the underlying tokens if they
-   * haven't been seen before.
+   * MarketCreated: Initialize new pool and tokens
+   * Creates: Pool, CA token, REF token, CPT token, CST token
+   * PoolAssets: None created (pool starts empty)
    */
   Pool.MarketCreated.contractRegister(({event, context}) => {
     context.addCPT(event.params.principalToken);
@@ -112,11 +114,9 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   });
 
   /**
-   * Process deposits into the pool. Deposits transfer collateral tokens
-   * from the depositor to the pool and mint both swap (CST) and principal
-   * (CPT) shares for the depositor. The collateral asset and
-   * share token addresses are derived from the pool definition.
-   * //   IN CA,          OUT CST | CPT
+   * Deposit: User deposits collateral, receives CPT/CST shares
+   * IN: CA (from user) → OUT: CPT + CST (to user)
+   * PoolAssets: CA balance increases
    */
   Pool.Deposit.handlerWithLoader({
     loader: async ({ event, context }) => {
@@ -225,11 +225,9 @@ export function attachEventHandlers<T extends typeof CorkPool>(
 
 
   /**
-   * Process extended withdrawals. Extended withdrawals allow two assets
-   * and share pairs to be redeemed in a single call. We assume the
-   * first pair corresponds to collateral/principal and the second pair
-   * corresponds to swap/share tokens. Both pairs are processed in
-   * sequence using the same logic as simple withdrawals.
+   * WithdrawExtended: User burns CPT/CST shares, receives CA/REF assets
+   * IN: CPT + CST (from user) → OUT: CA + REF (to user)
+   * PoolAssets: CA and REF balances decrease
    */
   Pool.WithdrawExtended.handlerWithLoader({
     loader: async ({ event, context }) => {
@@ -349,73 +347,10 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   });
 
   /**
-   * For all remaining pool events that do not affect balances we simply
-   * record the raw event data. These include pausing/unpausing, rate
-   * updates, swaps, unwinds and upgrades. Should more complex
-   * semantics be required in the future these handlers can be
-   * augmented with additional indexing logic.
+   * Swap: User exchanges REF + CST for CA
+   * IN: REF + CST (from user) → OUT: CA (to user)
+   * PoolAssets: REF increases, CA decreases
    */
-  Pool.BaseRedemptionFeePercentageUpdated.handler(async ({ event, context }) => {
-    const entity: CorkPool_BaseRedemptionFeePercentageUpdated = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      event_id: event.params.id,
-      baseRedemptionFeePercentage: event.params.baseRedemptionFeePercentage,
-    };
-    context.CorkPool_BaseRedemptionFeePercentageUpdated.set(entity);
-  });
-
-  Pool.DepositPaused.handler(async ({ event, context }) => {
-    const entity: CorkPool_DepositPaused = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      marketId: event.params.marketId,
-    };
-    context.CorkPool_DepositPaused.set(entity);
-  });
-  
-  Pool.DepositUnpaused.handler(async ({ event, context }) => {
-    const entity: CorkPool_DepositUnpaused = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      marketId: event.params.marketId,
-    };
-    context.CorkPool_DepositUnpaused.set(entity);
-  });
-  Pool.Initialized.handler(async ({ event, context }) => {
-    const entity: CorkPool_Initialized = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      version: event.params.version,
-    };
-    context.CorkPool_Initialized.set(entity);
-  });
-  Pool.OwnershipTransferred.handler(async ({ event, context }) => {
-    const entity: CorkPool_OwnershipTransferred = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      previousOwner: event.params.previousOwner,
-      newOwner: event.params.newOwner,
-    };
-    context.CorkPool_OwnershipTransferred.set(entity);
-  });
-
-  Pool.ReturnPaused.handler(async ({ event, context }) => {
-    const entity: CorkPool_ReturnPaused = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      marketId: event.params.marketId,
-    };
-    context.CorkPool_ReturnPaused.set(entity);
-  });
-  Pool.ReturnUnpaused.handler(async ({ event, context }) => {
-    const entity: CorkPool_ReturnUnpaused = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      marketId: event.params.marketId,
-    };
-    context.CorkPool_ReturnUnpaused.set(entity);
-  });
-
-  // Swap: the caller exchanges reference (REF) and swap (CST) tokens for
-  // collateral assets (CA). We treat `paUsed` as the amount of REF tokens
-  // provided, `swapTokenUsed` as the amount of CST tokens provided and
-  // `raReceived` as the amount of CA tokens returned. We update both
-  // account balances and pool balances accordingly. See the mapping
-  // comment above for token flows.
   Pool.Swap.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
@@ -517,28 +452,11 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     },
   });
 
-  Pool.SwapPaused.handler(async ({ event, context }) => {
-    const entity: CorkPool_SwapPaused = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      marketId: event.params.marketId,
-    };
-    context.CorkPool_SwapPaused.set(entity);
-  });
-  Pool.SwapUnpaused.handler(async ({ event, context }) => {
-    const entity: CorkPool_SwapUnpaused = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      marketId: event.params.marketId,
-    };
-    context.CorkPool_SwapUnpaused.set(entity);
-  });
-
-
-  // UnwindSwap: the buyer deposits collateral assets (CA) and receives
-  // reference (REF) and swap (CST) tokens. We treat `raUsed` as the
-  // amount of CA deposited, `receivedReferenceAsset` as the amount of
-  // REF tokens returned, and `receivedSwapToken` as the amount of
-  // CST tokens returned. Balances and pool assets are adjusted
-  // accordingly.
+  /**
+   * UnwindSwap: User deposits CA, receives REF + CST
+   * IN: CA (from user) → OUT: REF + CST (to user)  
+   * PoolAssets: CA increases, REF decreases
+   */
   Pool.UnwindSwap.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
@@ -640,6 +558,84 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     },
   });
 
+  // ========================================
+  // SIMPLE EVENT RECORDING HANDLERS
+  // ========================================
+
+  Pool.BaseRedemptionFeePercentageUpdated.handler(async ({ event, context }) => {
+    const entity: CorkPool_BaseRedemptionFeePercentageUpdated = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      event_id: event.params.id,
+      baseRedemptionFeePercentage: event.params.baseRedemptionFeePercentage,
+    };
+    context.CorkPool_BaseRedemptionFeePercentageUpdated.set(entity);
+  });
+
+  Pool.DepositPaused.handler(async ({ event, context }) => {
+    const entity: CorkPool_DepositPaused = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      marketId: event.params.marketId,
+    };
+    context.CorkPool_DepositPaused.set(entity);
+  });
+  
+  Pool.DepositUnpaused.handler(async ({ event, context }) => {
+    const entity: CorkPool_DepositUnpaused = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      marketId: event.params.marketId,
+    };
+    context.CorkPool_DepositUnpaused.set(entity);
+  });
+
+  Pool.Initialized.handler(async ({ event, context }) => {
+    const entity: CorkPool_Initialized = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      version: event.params.version,
+    };
+    context.CorkPool_Initialized.set(entity);
+  });
+
+  Pool.OwnershipTransferred.handler(async ({ event, context }) => {
+    const entity: CorkPool_OwnershipTransferred = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      previousOwner: event.params.previousOwner,
+      newOwner: event.params.newOwner,
+    };
+    context.CorkPool_OwnershipTransferred.set(entity);
+  });
+
+  Pool.ReturnPaused.handler(async ({ event, context }) => {
+    const entity: CorkPool_ReturnPaused = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      marketId: event.params.marketId,
+    };
+    context.CorkPool_ReturnPaused.set(entity);
+  });
+
+  Pool.ReturnUnpaused.handler(async ({ event, context }) => {
+    const entity: CorkPool_ReturnUnpaused = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      marketId: event.params.marketId,
+    };
+    context.CorkPool_ReturnUnpaused.set(entity);
+  });
+
+  Pool.SwapPaused.handler(async ({ event, context }) => {
+    const entity: CorkPool_SwapPaused = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      marketId: event.params.marketId,
+    };
+    context.CorkPool_SwapPaused.set(entity);
+  });
+
+  Pool.SwapUnpaused.handler(async ({ event, context }) => {
+    const entity: CorkPool_SwapUnpaused = {
+      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      marketId: event.params.marketId,
+    };
+    context.CorkPool_SwapUnpaused.set(entity);
+  });
+
   Pool.UnwindSwapFeeRateUpdated.handler(async ({ event, context }) => {
     const entity: CorkPool_UnwindSwapFeeRateUpdated = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
@@ -648,6 +644,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     };
     context.CorkPool_UnwindSwapFeeRateUpdated.set(entity);
   });
+
   Pool.UnwindSwapPaused.handler(async ({ event, context }) => {
     const entity: CorkPool_UnwindSwapPaused = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
@@ -655,6 +652,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     };
     context.CorkPool_UnwindSwapPaused.set(entity);
   });
+
   Pool.UnwindSwapUnpaused.handler(async ({ event, context }) => {
     const entity: CorkPool_UnwindSwapUnpaused = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
@@ -670,6 +668,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     };
     context.CorkPool_Upgraded.set(entity);
   });
+
   Pool.WithdrawalPaused.handler(async ({ event, context }) => {
     const entity: CorkPool_WithdrawalPaused = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
@@ -677,6 +676,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     };
     context.CorkPool_WithdrawalPaused.set(entity);
   });
+
   Pool.WithdrawalUnpaused.handler(async ({ event, context }) => {
     const entity: CorkPool_WithdrawalUnpaused = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
