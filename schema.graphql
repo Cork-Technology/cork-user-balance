@@ -4,6 +4,146 @@
 # additional domain models for accounts, tokens, pools and prices.
 
 ############################
+# Domain Models
+############################
+
+enum TokenType {
+  CPT
+  CST
+  CA
+  REF
+}
+
+type Account {
+  # id is the `chain-accountAddress`
+  id: ID!
+  address: String! @index
+  transfersFrom: [TokenTransfer!]! @derivedFrom(field: "from")
+  transfersTo: [TokenTransfer!]! @derivedFrom(field: "to")
+  approvals: [TokenApproval!]! @derivedFrom(field: "owner")
+  tokens: [AccountToken!]! @derivedFrom(field: "account")
+  tokenEntries: [AccountTokenEntry!]! @derivedFrom(field: "account")
+}
+
+type AccountToken {
+  # id is the `chain-tokenAddress-accountAddress`
+  id: ID!
+  balance: BigInt! @index
+  account: Account!
+  token: Token!
+}
+
+type AccountTokenEntry {
+  # id is [chain-block-logIndex]
+  id: ID!
+  # amount is the amount of tokens added (positive) or subtracted (negative)
+  amount: BigInt! @index
+  # timestamp is the time of the entry
+  timestamp: Timestamp! @index
+  # blockNumber is the block number of the entry
+  blockNumber: Int! @index
+  # transfer is the transfer that caused this entry
+  transfer: TokenTransfer!
+  account: Account!
+  token: Token!
+}
+
+type Token {
+  # id is the `chain-tokenAddress`
+  id: ID!
+  address: String! @index
+  typ: TokenType! @index
+  totalSupply: BigInt @index
+  # pool is the pool that this token belongs to (for CPT/CST tokens)
+  pool: Pool
+  transfers: [TokenTransfer!]! @derivedFrom(field: "token")
+  approvals: [TokenApproval!]! @derivedFrom(field: "token")
+  accounts: [AccountToken!]! @derivedFrom(field: "token")
+  accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
+}
+
+type TokenTransfer {
+  # id is [chain-block-logIndex]
+  id: ID!
+  # amount is the amount of tokens transferred
+  amount: BigInt! @index
+  # timestamp is the time of the transfer
+  timestamp: Timestamp! @index
+  # blockNumber is the block number of the transfer
+  blockNumber: Int! @index
+  token: Token!
+  from: Account!
+  to: Account!
+  # entries are a list of account balance changes of this transfer
+  entries: [AccountTokenEntry!]! @derivedFrom(field: "transfer")
+}
+
+type TokenApproval {
+  # id is [chain-tokenAddress-ownerAddress-spenderAddress]
+  id: ID!
+  # amount is the amount of tokens approved
+  amount: BigInt!
+  # timestamp is when this approval occurred
+  timestamp: Timestamp! @index
+  # blockNumber is the block number when this approval occurred
+  blockNumber: Int! @index
+  token: Token!
+  owner: Account!
+  spender: Account!
+}
+
+type Pool {
+  # id is [chain-poolId]
+  id: ID!
+  poolId: Bytes! @index
+  principalTokenAddr: String! @index
+  swapTokenAddr: String! @index
+  collateralAssetAddr: String! @index
+  referenceAssetAddr: String! @index
+  exchangeRateProviderAddr: String! @index
+  expiry: BigInt!
+  startBlock: Int!
+  # Linked entities per ER Diagram
+  principalToken: Token!
+  swapToken: Token!
+  collateralAsset: PoolAsset!
+  referenceAsset: PoolAsset!
+  assets: [PoolAsset!]! @derivedFrom(field: "pool")
+}
+
+type PoolAsset {
+  # id is the `chain-poolId-tokenAddress`
+  id: ID!
+  balance: BigInt! @index
+  pool: Pool!
+  token: Token!
+  # entries logged against this pool asset
+  entries: [PoolAssetEntry!]! @derivedFrom(field: "poolAsset")
+}
+
+type PoolAssetEntry {
+  # id is [chain-block-logIndex]
+  id: ID!
+  amount: BigInt! @index
+  timestamp: Timestamp! @index
+  blockNumber: Int! @index
+  poolAsset: PoolAsset!
+}
+
+type AssetPrice {
+  # id is the `chain-fromTokenAddress-toTokenAddress` (unique per from/to token)
+  id: ID!
+  lastAnswer: BigInt!
+  decimals: Int!
+  updatedAt: Timestamp! @index
+  toCurrency: String!
+  fromToken: Token!
+  toToken: Token!
+}
+
+
+
+############################
 # Event Entities
 ############################
 
@@ -264,113 +404,3 @@ type CorkPT_Deposit {
   shares: BigInt!
 }
 
-
-############################
-# Domain Models
-############################
-
-enum TokenType {
-  CPT
-  CST
-  CA
-  REF
-}
-
-type Account {
-  id: ID!
-  address: String! @index
-  transfersFrom: [TokenTransfer!]! @derivedFrom(field: "from")
-  transfersTo: [TokenTransfer!]! @derivedFrom(field: "to")
-  approvals: [TokenApproval!]! @derivedFrom(field: "owner")
-  tokens: [AccountToken!]! @derivedFrom(field: "account")
-  tokenEntries: [AccountTokenEntry!]! @derivedFrom(field: "account")
-}
-
-type AccountToken {
-  id: ID!
-  account: Account!
-  token: Token!
-  balance: BigInt! @index
-}
-
-type AccountTokenEntry {
-  id: ID!
-  account: Account!
-  token: Token!
-  amount: BigInt! @index
-  timestamp: Timestamp! @index
-  blockNumber: Int! @index
-  transfer: TokenTransfer
-}
-
-type Token {
-  id: ID!
-  address: String! @index
-  typ: TokenType! @index
-  totalSupply: BigInt @index
-  transfers: [TokenTransfer!]! @derivedFrom(field: "token")
-  approvals: [TokenApproval!]! @derivedFrom(field: "token")
-  accounts: [AccountToken!]! @derivedFrom(field: "token")
-  accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
-}
-
-type TokenTransfer {
-  id: ID!
-  timestamp: Timestamp! @index
-  blockNumber: Int! @index
-  amount: BigInt! @index
-  token: Token!
-  from: Account!
-  to: Account!
-  entries: [AccountTokenEntry!]! @derivedFrom(field: "transfer")
-}
-
-type TokenApproval {
-  id: ID!
-  timestamp: Timestamp! @index
-  blockNumber: Int! @index
-  amount: BigInt!
-  token: Token!
-  owner: Account!
-  spender: Account!
-}
-
-type Pool {
-  id: ID!
-  poolId: Bytes! @index
-  principalTokenAddr: String! @index
-  swapTokenAddr: String! @index
-  collateralAssetAddr: String! @index
-  referenceAssetAddr: String! @index
-  exchangeRateProviderAddr: String! @index
-  expiry: BigInt!
-  startBlock: Int!
-  assets: [PoolAsset!]! @derivedFrom(field: "pool")
-  assetEntries: [PoolAssetEntry!]! @derivedFrom(field: "pool")
-}
-
-type PoolAsset {
-  id: ID!
-  pool: Pool!
-  token: Token!
-  balance: BigInt! @index
-}
-
-type PoolAssetEntry {
-  id: ID!
-  pool: Pool!
-  token: Token! @index
-  amount: BigInt! @index
-  timestamp: Timestamp! @index
-  blockNumber: Int! @index
-}
-
-type AssetPrice {
-  id: ID!
-  lastAnswer: BigInt!
-  decimals: Int!
-  updatedAt: Timestamp! @index
-  toCurrency: String!
-  fromToken: Token!
-  toToken: Token!
-}

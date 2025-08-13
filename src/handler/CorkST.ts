@@ -3,7 +3,6 @@
  */
 import type {
   CST,
-  CorkST_Transfer,
   CorkST_Approval,
 } from "generated";
 import {
@@ -18,19 +17,21 @@ import {
   makeTokenTransfer,
   addToBalance,
   subFromBalance,
+  makeTokenApproval,
+  makeTokenTransferId,
+  makeTokenApprovalId,
 } from "../helper";
 
 export function attachEventHandlers<T extends typeof CST>(
   CST: T,
 ): void {
-  
+
   CST.Transfer.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
       const tokenAddress = event.srcAddress;
-      const fromAddress = event.params.from;
-      const toAddress = event.params.to;
-      
+      const { from: fromAddress, to: toAddress } = event.params;
+
       return Promise.all([
         // Load token
         context.Token.get(makeTokenId(chainId, tokenAddress)),
@@ -44,18 +45,14 @@ export function attachEventHandlers<T extends typeof CST>(
     },
     handler: async ({ event, context, loaderReturn }) => {
       const [token, fromAccount, toAccount, fromAccountToken, toAccountToken] = loaderReturn as any[];
-      
+
       const chainId = event.chainId;
       const tokenAddress = event.srcAddress;
-      const fromAddress = event.params.from;
-      const toAddress = event.params.to;
-      const amount = event.params.value;
+      const { from: fromAddress, to: toAddress, value: amount } = event.params;
 
       // Ensure token exists (CST type)
       let cstToken = token;
-      if (!cstToken) {
-        cstToken = createNewToken(chainId, tokenAddress, "CST", context.Token.set);
-      }
+      cstToken ||= createNewToken(chainId, tokenAddress, "CST", context.Token.set);
 
       // Update total supply based on minting/burning
       if (fromAddress === ZERO_ADDRESS) {
@@ -68,31 +65,31 @@ export function attachEventHandlers<T extends typeof CST>(
 
       // Create missing accounts
       let fromAcc = fromAccount;
-      if (!fromAcc && fromAddress !== ZERO_ADDRESS) {
-        fromAcc = createNewAccount(chainId, fromAddress, context.Account.set);
+      if (fromAddress !== ZERO_ADDRESS) {
+        fromAcc ||= createNewAccount(chainId, fromAddress, context.Account.set);
       }
-      
+
       let toAcc = toAccount;
-      if (!toAcc && toAddress !== ZERO_ADDRESS) {
-        toAcc = createNewAccount(chainId, toAddress, context.Account.set);
+      if (toAddress !== ZERO_ADDRESS) {
+        toAcc ||= createNewAccount(chainId, toAddress, context.Account.set);
       }
 
       // Create missing account tokens
       let fromAccToken = fromAccountToken;
-      if (!fromAccToken && fromAddress !== ZERO_ADDRESS) {
-        fromAccToken = createNewAccountToken(chainId, fromAddress, tokenAddress, context.AccountToken.set);
+      if (fromAddress !== ZERO_ADDRESS) {
+        fromAccToken ||= createNewAccountToken(chainId, fromAddress, tokenAddress, context.AccountToken.set);
       }
-      
+
       let toAccToken = toAccountToken;
-      if (!toAccToken && toAddress !== ZERO_ADDRESS) {
-        toAccToken = createNewAccountToken(chainId, toAddress, tokenAddress, context.AccountToken.set);
+      if (toAddress !== ZERO_ADDRESS) {
+        toAccToken ||= createNewAccountToken(chainId, toAddress, tokenAddress, context.AccountToken.set);
       }
 
       // Update balances and create entries
       if (fromAddress !== ZERO_ADDRESS && fromAccToken) {
         // Subtract from sender (normal transfer)
         context.AccountTokenEntry.set(
-          makeAccountTokenEntry(event, fromAddress, tokenAddress, -amount),
+          makeAccountTokenEntry(event, fromAddress, tokenAddress, -amount, event.logIndex.toString()),
         );
         context.AccountToken.set(
           subFromBalance(fromAccToken, amount),
@@ -102,7 +99,7 @@ export function attachEventHandlers<T extends typeof CST>(
       if (toAddress !== ZERO_ADDRESS && toAccToken) {
         // Add to receiver (both normal transfer and minting from ZERO_ADDRESS)
         context.AccountTokenEntry.set(
-          makeAccountTokenEntry(event, toAddress, tokenAddress, amount),
+          makeAccountTokenEntry(event, toAddress, tokenAddress, amount, event.logIndex.toString()),
         );
         context.AccountToken.set(
           addToBalance(toAccToken, amount),
@@ -114,25 +111,51 @@ export function attachEventHandlers<T extends typeof CST>(
         makeTokenTransfer(event, tokenAddress, fromAddress, toAddress, amount),
       );
 
-      // Record the original transfer event for compatibility
       context.CorkST_Transfer.set({
-        id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-        from: event.params.from,
-        to: event.params.to,
-        amount: event.params.value,
+        id: makeTokenTransferId(event),
+        from: fromAddress,
+        to: toAddress,
+        amount,
       });
     },
   });
 
-  // Handle CST approvals
-  CST.Approval.handler(async ({ event, context }) => {
-    // Record the approval event
-    context.CorkST_Approval.set({
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      owner: event.params.owner,
-      spender: event.params.spender,
-      amount: event.params.value,
-      srcAddress: event.srcAddress,
-    });
+  CST.Approval.handlerWithLoader({
+    loader: async ({ event, context }) => Promise.all([
+      context.Token.get(makeTokenId(event.chainId, event.srcAddress)),
+      context.Account.get(makeAccountId(event.chainId, event.params.owner)),
+    ]),
+    handler: async ({ event, context, loaderReturn: [token, ownerAccount] }) => {
+      const chainId = event.chainId;
+      const { owner, spender, value } = event.params;
+      const tokenAddress = event.srcAddress;
+
+      if (!token) {
+        token = createNewToken(chainId, tokenAddress, "CST", context.Token.set);
+      }
+      if (!ownerAccount) {
+        ownerAccount = createNewAccount(chainId, owner, context.Account.set);
+      }
+
+      context.TokenApproval.set(
+        makeTokenApproval(
+          event,
+          tokenAddress,
+          owner,
+          spender,
+          value,
+        )
+      );
+
+      const entity: CorkST_Approval = {
+        id: makeTokenApprovalId(event.chainId, tokenAddress, owner, spender),
+        owner: event.params.owner,
+        spender: event.params.spender,
+        amount: value,
+        srcAddress: event.srcAddress,
+      };
+
+      context.CorkST_Approval.set(entity);
+    },
   });
 } 

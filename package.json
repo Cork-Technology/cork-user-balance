@@ -12,19 +12,19 @@
     "test": "pnpm mocha"
   },
   "devDependencies": {
-    "@types/chai": "^4.3.11",    
+    "@types/chai": "^4.3.20",
     "@types/mocha": "10.0.6",
     "@types/node": "20.8.8",
-    "ts-mocha": "^10.0.0",
-    "typescript": "5.2.2",
     "chai": "4.3.10",
-    "mocha": "10.2.0"
+    "mocha": "10.2.0",
+    "ts-mocha": "^10.1.0",
+    "typescript": "5.2.2"
   },
   "dependencies": {
     "envio": "2.25.0"
   },
   "optionalDependencies": {
-    "generated": "./generated"
+    "generated": "link:generated"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -19,8 +19,7 @@ networks:
     - event: Unpaused(address account)
 
   - name: CorkPool
-    address:
-    - 0xDF181Defd2A02171A9cDacB24B171DB9cDc9bEd6
+    abi_file_path: ./abis/CorkPool.json
     handler: src/EventHandlers.ts
     events:
     - event: BaseRedemptionFeePercentageUpdated(bytes32 indexed id, uint256 indexed baseRedemptionFeePercentage)
@@ -45,8 +44,7 @@ networks:
     - event: WithdrawalUnpaused(bytes32 indexed marketId)
 
   - name: ExchangeRateProvider
-    address:
-    - 0x8480B2ea4a367de5b1E0Df4803F1872002f3C6e5
+    abi_file_path: ./abis/ExchangeRateProvider.json
     handler: src/EventHandlers.ts
     events:
     - event: RateUpdated(bytes32 indexed id, uint256 newRate)

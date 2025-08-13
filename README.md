@@ -13,10 +13,7 @@ A comprehensive blockchain indexer for the Cork Protocol ecosystem, built with [
 ### Installation & Setup
 
 ```bash
-# 1. Install dependencies
-pnpm install
-
-# 2. Generate code from schema and config
+# 1. Install and Generate code from schema and config
 pnpm codegen
 
 # 3. Start the indexer
@@ -44,7 +41,7 @@ Visit [http://localhost:8080](http://localhost:8080)
 ### Data Models
 
 - **👤 Accounts** - User wallet addresses and their token holdings
-- **🪙 Tokens** - CPT, CST, CA, REF tokens with total supply tracking
+- **🪙 Tokens** - CPT, CST tokens with total supply tracking
 - **💰 Account Balances** - Real-time user token balances
 - **🏊 Pool Assets** - Pool-level asset balances (CA/REF)
 - **📈 Token Transfers** - Complete transfer history
@@ -66,14 +63,22 @@ src/
     └── CorkST.ts            # CST token events (transfers, approvals)
 ```
 
+### Token Types
+
+- **CPT** - Cork Principal Token (ERC4626 shares)
+- **CST** - Cork Swap Token (ERC4626 shares)  
+- **CA** - Collateral Asset (underlying asset)
+- **REF** - Reference Asset (underlying asset)
+
 ### Token Flow Tracking
 
-| Operation | Input Tokens | Output Tokens | Pool Assets |
-|-----------|--------------|---------------|-------------|
-| **Deposit** | CA (user) | CPT + CST (user) | CA ↑ |
-| **WithdrawExtended** | CPT + CST (user) | CA + REF (user) | CA ↓, REF ↓ |
-| **Swap** | REF + CST (user) | CA (user) | REF ↑, CA ↓ |
-| **UnwindSwap** | CA (user) | REF + CST (user) | CA ↑, REF ↓ |
+| Operation                                        | Input Tokens | Output Tokens | Pool Assets  |
+|----------------------------------|--------------|----------------|-------------|
+| **Deposit/Mint**                            | CA                  | CPT + CST       | CA ↑             |
+| **UnwindDeposit/UnwindMint**   | CPT + CST    | CA                     | CA ↓             |
+| **Withdraw/Redeem (expired)**   | CPT + CST    | CA + REF          | CA ↓, REF ↓ |
+| **Swap/Exercise**                          | REF + CST     | CA                     | CA ↓, REF ↑ |
+| **UnwindSwap/UnwindExercise** | CA                  | REF + CST        | CA ↑, REF ↓ |
 
 ## 🔧 Development Commands
 
@@ -86,9 +91,6 @@ pnpm codegen
 
 # Start development server with hot reload
 pnpm dev
-
-# Build for production
-pnpm build
 
 # Run tests
 pnpm test
@@ -104,13 +106,6 @@ The indexer is configured for **Sepolia testnet** (Chain ID: 11155111) and monit
 - **CorkPool:** `0xDF181Defd2A02171A9cDacB24B171DB9cDc9bEd6`
 - **ExchangeRateProvider:** `0x8480B2ea4a367de5b1E0Df4803F1872002f3C6e5`
 - **SharesFactory:** `0xDCed1d589bbc522d8C6843c39203d40DC2eD0B5b`
-
-### Token Types
-
-- **CPT** - Cork Principal Token (ERC4626 shares)
-- **CST** - Cork Swap Token (ERC4626 shares)  
-- **CA** - Collateral Asset (underlying asset)
-- **REF** - Reference Asset (underlying asset)
 
 ## 📊 Example Queries
 
@@ -178,7 +173,6 @@ query GetRecentTransfers($limit: Int = 10) {
 ## 📚 Resources
 
 - [Envio Documentation](https://docs.envio.dev)
-- [Cork Protocol](https://cork.technology)
 - [GraphQL Documentation](https://graphql.org/learn/)
 
 ## 🤝 Contributing

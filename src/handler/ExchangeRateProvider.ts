@@ -3,6 +3,11 @@ import type {
     ExchangeRateProvider_RateUpdated,
   } from "generated";
   
+
+  // ========================================
+  // SIMPLE EVENT RECORDING HANDLERS
+  // ========================================
+
   export function attachEventHandlers<T extends typeof ExchangeRateProvider>(
     Provider: T,
   ): void {

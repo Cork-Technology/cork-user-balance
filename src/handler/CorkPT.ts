@@ -3,9 +3,7 @@
  */
 import type {
   CPT,
-  CorkPT_Transfer,
-  CorkPT_Deposit,
-  CorkPT_Withdraw,
+  CorkPT_Approval,
 } from "generated";
 import {
   ZERO_ADDRESS,
@@ -19,6 +17,9 @@ import {
   makeTokenTransfer,
   addToBalance,
   subFromBalance,
+  makeTokenApproval,
+  makeTokenApprovalId,
+  makeTokenTransferId,
 } from "../helper";
 
 export function attachEventHandlers<T extends typeof CPT>(
@@ -93,7 +94,7 @@ export function attachEventHandlers<T extends typeof CPT>(
       if (fromAddress !== ZERO_ADDRESS && fromAccToken) {
         // Subtract from sender (normal transfer)
         context.AccountTokenEntry.set(
-          makeAccountTokenEntry(event, fromAddress, tokenAddress, -amount),
+          makeAccountTokenEntry(event, fromAddress, tokenAddress, -amount, event.logIndex.toString()),
         );
         context.AccountToken.set(
           subFromBalance(fromAccToken, amount),
@@ -103,7 +104,7 @@ export function attachEventHandlers<T extends typeof CPT>(
       if (toAddress !== ZERO_ADDRESS && toAccToken) {
         // Add to receiver (both normal transfer and minting from ZERO_ADDRESS)
         context.AccountTokenEntry.set(
-          makeAccountTokenEntry(event, toAddress, tokenAddress, amount),
+          makeAccountTokenEntry(event, toAddress, tokenAddress, amount, event.logIndex.toString()),
         );
         context.AccountToken.set(
           addToBalance(toAccToken, amount),
@@ -117,11 +118,50 @@ export function attachEventHandlers<T extends typeof CPT>(
 
       // Record the original transfer event for compatibility
       context.CorkPT_Transfer.set({
-        id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+        id: makeTokenTransferId(event),
         from: event.params.from,
         to: event.params.to,
         amount: event.params.value,
       });
+    },
+  });
+
+  CPT.Approval.handlerWithLoader({
+    loader: async ({ event, context }) => Promise.all([
+      context.Token.get(makeTokenId(event.chainId, event.srcAddress)),
+      context.Account.get(makeAccountId(event.chainId, event.params.owner)),
+    ]),
+    handler: async ({ event, context, loaderReturn: [token, ownerAccount] }) => {
+      const chainId = event.chainId;
+      const { owner, spender, value } = event.params;
+      const tokenAddress = event.srcAddress;
+
+      if (!token) {
+        token = createNewToken(chainId, tokenAddress, "CST", context.Token.set);
+      }
+      if (!ownerAccount) {
+        ownerAccount = createNewAccount(chainId, owner, context.Account.set);
+      }
+
+      context.TokenApproval.set(
+        makeTokenApproval(
+          event,
+          tokenAddress,
+          owner,
+          spender,
+          value,
+        )
+      );
+
+      const entity: CorkPT_Approval = {
+        id: makeTokenApprovalId(event.chainId, tokenAddress, owner, spender),
+        owner: event.params.owner,
+        spender: event.params.spender,
+        amount: value,
+        srcAddress: event.srcAddress,
+      };
+
+      context.CorkPT_Approval.set(entity);
     },
   });
 

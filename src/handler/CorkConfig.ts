@@ -12,6 +12,11 @@ import type {
   export function attachEventHandlers<T extends typeof CorkConfig>(
     Config: T,
   ): void {
+
+    Config.CorkPoolSet.contractRegister(({event, context}) => {
+      context.addCorkPool(event.params.corkPool);
+    })
+    
     Config.CorkPoolSet.handler(async ({ event, context }) => {
       const entity: CorkConfig_CorkPoolSet = {
         id: `${event.chainId}_${event.block.number}_${event.logIndex}`,

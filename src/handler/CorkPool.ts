@@ -55,40 +55,37 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   Pool.MarketCreated.contractRegister(({event, context}) => {
     context.addCPT(event.params.principalToken);
     context.addCST(event.params.swapToken);
+    context.addExchangeRateProvider(event.params.exchangeRateProvider);
   })
 
   Pool.MarketCreated.handler(async ({ event, context }) => {
     const chainId = event.chainId;
-    const marketId = event.params.id as unknown as string;
+    const marketId = `${event.params.id}`;
     const poolId = marketId;
-    const referenceAsset = event.params.referenceAsset;
-    const collateralAsset = event.params.collateralAsset;
-    const principalToken = event.params.principalToken;
-    const swapToken = event.params.swapToken;
-    const exchangeRateProvider = event.params.exchangeRateProvider;
-    const expiry = event.params.expiry;
+    const {referenceAsset, collateralAsset, principalToken, swapToken, exchangeRateProvider, expiry} = event.params;
 
 
+    // REF
+    let refToken = await context.Token.get(makeTokenId(chainId, referenceAsset));
+    refToken ||= createNewToken(chainId, referenceAsset, "REF", context.Token.set);
+    // CA
+    let collToken = await context.Token.get(makeTokenId(chainId, collateralAsset));
+    collToken ||= createNewToken(chainId, collateralAsset, "CA", context.Token.set);
+    // CPT
+    let prToken = await context.Token.get(makeTokenId(chainId, principalToken));
+    prToken ||= createNewToken(chainId, principalToken, "CPT", context.Token.set);
+    // CST
+    let swToken = await context.Token.get(makeTokenId(chainId, swapToken));
+    swToken ||= createNewToken(chainId, swapToken, "CST", context.Token.set);
 
-    // Ensure all referenced tokens exist
-    // Use the new token type names: REF for reference asset, CA for collateral asset,
-    // CPT for principal (cover principal token) and CST for swap token. These
-    // abbreviations mirror the updated TokenType enum defined in the schema.
-    if (!(await context.Token.get(makeTokenId(chainId, referenceAsset)))) {
-      createNewToken(chainId, referenceAsset, "REF", context.Token.set);
-    }
-    if (!(await context.Token.get(makeTokenId(chainId, collateralAsset)))) {
-      createNewToken(chainId, collateralAsset, "CA", context.Token.set);
-    }
-    if (!(await context.Token.get(makeTokenId(chainId, principalToken)))) {
-      createNewToken(chainId, principalToken, "CPT", context.Token.set);
-    }
-    if (!(await context.Token.get(makeTokenId(chainId, swapToken)))) {
-      createNewToken(chainId, swapToken, "CST", context.Token.set);
-    }
+    // Ensure zero-balance PoolAsset records exist for CA and REF so that
+    // required Pool relationships can be linked immediately.
+    createNewPoolAsset(chainId, poolId, collateralAsset, context.PoolAsset.set);
+    createNewPoolAsset(chainId, poolId, referenceAsset, context.PoolAsset.set);
 
     // Create the pool entry. If it already exists this will overwrite
-    // existing data with the new parameters.
+    // existing data with the new parameters. The helper links principal/swap
+    // tokens and collateral/reference assets via *_id fields.
     createNewPool(chainId, poolId, {
       poolIdBytes: marketId,
       principalTokenAddr: principalToken,
@@ -100,8 +97,12 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       startBlock: event.block.number,
     }, context.Pool.set);
 
+    // Link CPT/CST tokens back to the pool for convenience
+    context.Token.set({ ...prToken, pool_id: makePoolId(chainId, poolId) });
+    context.Token.set({ ...swToken, pool_id: makePoolId(chainId, poolId) });
+
     const entity: CorkPool_MarketCreated = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      id: makePoolId(chainId, poolId),
       event_id: event.params.id,
       referenceAsset: event.params.referenceAsset,
       collateralAsset: event.params.collateralAsset,
@@ -121,93 +122,60 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   Pool.Deposit.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
-      const poolId = event.params.marketId as unknown as string;
+      const poolId = `${event.params.marketId}`;
       const pool = await context.Pool.get(makePoolId(chainId, poolId));
       if (!pool) {
         return [undefined];
       }
-      const collateralAddr = pool.collateralAssetAddr;
-      const principalAddr = pool.principalTokenAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const referenceAddr = pool.referenceAssetAddr;
+      const { principalTokenAddr, swapTokenAddr, collateralAssetAddr, referenceAssetAddr } = pool;
       return Promise.all([
         pool,
         // Load the collateral, principal, swap, and reference tokens. These may be undefined
-        collateralAddr ? context.Token.get(makeTokenId(chainId, collateralAddr)) : undefined,
-        principalAddr ? context.Token.get(makeTokenId(chainId, principalAddr)) : undefined,
-        swapAddr ? context.Token.get(makeTokenId(chainId, swapAddr)) : undefined,
-        referenceAddr ? context.Token.get(makeTokenId(chainId, referenceAddr)) : undefined,
+        collateralAssetAddr ? context.Token.get(makeTokenId(chainId, collateralAssetAddr)) : undefined,
+        principalTokenAddr ? context.Token.get(makeTokenId(chainId, principalTokenAddr)) : undefined,
+        swapTokenAddr ? context.Token.get(makeTokenId(chainId, swapTokenAddr)) : undefined,
+        referenceAssetAddr ? context.Token.get(makeTokenId(chainId, referenceAssetAddr)) : undefined,
         // Load the sender and owner accounts
         context.Account.get(makeAccountId(chainId, event.params.sender)),
         context.Account.get(makeAccountId(chainId, event.params.owner)),
         // Load the pool asset records for collateral and reference tokens
-        collateralAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAddr)) : undefined,
-        referenceAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAddr)) : undefined,
-      ]);
+        collateralAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)) : undefined,
+        referenceAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)) : undefined,
+      ] as const);
     },
     handler: async ({ event, context, loaderReturn }) => {
       // If pool was not found we cannot process the deposit
-      const [pool, collateralToken, principalToken, swapToken, referenceToken, senderAccount, ownerAccount, collateralPoolAsset, referencePoolAsset] = loaderReturn as any[];
+      let [pool, collateralToken, principalToken, swapToken, referenceToken, senderAccount, ownerAccount, collateralPoolAsset, referencePoolAsset] = loaderReturn;
       const chainId = event.chainId;
-      const poolId = event.params.marketId as unknown as string;
+      const poolId = `${event.params.marketId}`;
       if (!pool) {
         context.log.error(`CorkPool: deposit received for unknown pool ${poolId}`);
         return;
       }
-      const collateralAddr = pool.collateralAssetAddr;
-      const principalAddr = pool.principalTokenAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const referenceAddr = pool.referenceAssetAddr;
+      const { principalTokenAddr, swapTokenAddr, collateralAssetAddr, referenceAssetAddr } = pool;
 
-      // Create missing tokens. Use updated token types CA for collateral,
-      // CPT for principal (cover principal token), CST for swap token, and REF for reference.
-      let collToken = collateralToken;
-      if (!collToken) {
-        collToken = createNewToken(chainId, collateralAddr, "CA", context.Token.set);
-      }
-      let prToken = principalToken;
-      if (!prToken) {
-        prToken = createNewToken(chainId, principalAddr, "CPT", context.Token.set);
-      }
-      let swToken = swapToken;
-      if (!swToken) {
-        swToken = createNewToken(chainId, swapAddr, "CST", context.Token.set);
-      }
-      let refToken = referenceToken;
-      if (!refToken) {
-        refToken = createNewToken(chainId, referenceAddr, "REF", context.Token.set);
-      }
+      // Ensure tokens using ||= standard
+      principalToken ||= createNewToken(chainId, principalTokenAddr, "CPT", context.Token.set);
+      swapToken ||= createNewToken(chainId, swapTokenAddr, "CST", context.Token.set);
+      collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
+      referenceToken ||= createNewToken(chainId, referenceAssetAddr, "REF", context.Token.set);
 
-      // Create missing accounts
-      let sender = senderAccount;
-      if (!sender) {
-        sender = createNewAccount(chainId, event.params.sender, context.Account.set);
-      }
-      let owner = ownerAccount;
-      if (!owner) {
-        owner = createNewAccount(chainId, event.params.owner, context.Account.set);
-      }
+      // Ensure accounts using ||= standard
+      senderAccount ||= createNewAccount(chainId, event.params.sender, context.Account.set);
+      ownerAccount ||= createNewAccount(chainId, event.params.owner, context.Account.set);
 
-      // Create pool assets if missing - both collateral and reference need tracking
-      let collPoolAsset = collateralPoolAsset;
-      if (!collPoolAsset) {
-        collPoolAsset = createNewPoolAsset(chainId, poolId, collateralAddr, context.PoolAsset.set);
-      }
-      let refPoolAsset = referencePoolAsset;
-      if (!refPoolAsset) {
-        refPoolAsset = createNewPoolAsset(chainId, poolId, referenceAddr, context.PoolAsset.set);
-      }
+      // Ensure pool assets using ||= standard
+      collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
+      referencePoolAsset ||= createNewPoolAsset(chainId, poolId, referenceAssetAddr, context.PoolAsset.set);
 
-      const assets = event.params.assets;
-      const shares = event.params.shares;
+      const { assets, shares } = event.params;
+      
 
       // Update pool collateral balance: the pool receives `assets` of CA from the sender.
       context.PoolAssetEntry.set(
-        makePoolAssetEntry(event, poolId, collateralAddr, assets),
+        makePoolAssetEntry(event, poolId, collateralAssetAddr, assets),
       );
-      context.PoolAsset.set(
-        addToBalance(collPoolAsset, assets),
-      );
+      context.PoolAsset.set(addToBalance(collateralPoolAsset, assets));
 
       // Record deposit entity
       const entity: CorkPool_Deposit = {
@@ -232,103 +200,73 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   Pool.WithdrawExtended.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
-      const poolId = event.params.marketId as unknown as string;
+      const poolId = `${event.params.marketId}`;
       const pool = await context.Pool.get(makePoolId(chainId, poolId));
       if (!pool) {
         return [undefined];
       }
-      const collateralAddr = pool.collateralAssetAddr;
-      const principalAddr = pool.principalTokenAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const referenceAddr = pool.referenceAssetAddr;
+      const { principalTokenAddr, swapTokenAddr, collateralAssetAddr, referenceAssetAddr } = pool;
       return Promise.all([
         pool,
         // Load all relevant tokens
-        collateralAddr ? context.Token.get(makeTokenId(chainId, collateralAddr)) : undefined,
-        principalAddr ? context.Token.get(makeTokenId(chainId, principalAddr)) : undefined,
-        swapAddr ? context.Token.get(makeTokenId(chainId, swapAddr)) : undefined,
-        referenceAddr ? context.Token.get(makeTokenId(chainId, referenceAddr)) : undefined,
+        collateralAssetAddr ? context.Token.get(makeTokenId(chainId, collateralAssetAddr)) : undefined,
+        principalTokenAddr ? context.Token.get(makeTokenId(chainId, principalTokenAddr)) : undefined,
+        swapTokenAddr ? context.Token.get(makeTokenId(chainId, swapTokenAddr)) : undefined,
+        referenceAssetAddr ? context.Token.get(makeTokenId(chainId, referenceAssetAddr)) : undefined,
         // Load accounts
         context.Account.get(makeAccountId(chainId, event.params.sender)),
         context.Account.get(makeAccountId(chainId, event.params.owner)),
         // Load pool assets for collateral and reference tokens
-        collateralAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAddr)) : undefined,
-        referenceAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAddr)) : undefined,
-      ]);
+        collateralAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)) : undefined,
+        referenceAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)) : undefined,
+      ] as const);
     },
     handler: async ({ event, context, loaderReturn }) => {
-      const [pool, collateralToken, principalToken, swapToken, referenceToken, senderAccount, ownerAccount, collateralPoolAsset, referencePoolAsset] = loaderReturn as any[];
+      let [pool, collateralToken, principalToken, swapToken, referenceToken, senderAccount, ownerAccount, collateralPoolAsset, referencePoolAsset] = loaderReturn;
       const chainId = event.chainId;
-      const poolId = event.params.marketId as unknown as string;
+      const poolId = `${event.params.marketId}`;
       if (!pool) {
         context.log.error(`CorkPool: withdrawExtended received for unknown pool ${poolId}`);
         return;
       }
-      const collateralAddr = pool.collateralAssetAddr;
-      const principalAddr = pool.principalTokenAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const referenceAddr = pool.referenceAssetAddr;
+      const { principalTokenAddr, swapTokenAddr, collateralAssetAddr, referenceAssetAddr } = pool;
       
-      // Ensure tokens. Use CPT for principal (cover principal token), CA for the
-      // collateral asset, CST for the swap token, and REF for reference as per the updated
-      // TokenType enum.
-      let prToken = principalToken;
-      if (!prToken) {
-        prToken = createNewToken(chainId, principalAddr, "CPT", context.Token.set);
-      }
-      let collToken = collateralToken;
-      if (!collToken) {
-        collToken = createNewToken(chainId, collateralAddr, "CA", context.Token.set);
-      }
-      let swToken = swapToken;
-      if (!swToken) {
-        swToken = createNewToken(chainId, swapAddr, "CST", context.Token.set);
-      }
-      let refToken = referenceToken;
-      if (!refToken) {
-        refToken = createNewToken(chainId, referenceAddr, "REF", context.Token.set);
-      }
+      // Ensure tokens using ||= standard
+      principalToken ||= createNewToken(chainId, principalTokenAddr, "CPT", context.Token.set);
+      swapToken ||= createNewToken(chainId, swapTokenAddr, "CST", context.Token.set);
+      collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
+      referenceToken ||= createNewToken(chainId, referenceAssetAddr, "REF", context.Token.set);
       
-      // Ensure accounts
-      let sender = senderAccount;
-      if (!sender) {
-        sender = createNewAccount(chainId, event.params.sender, context.Account.set);
-      }
-      let owner = ownerAccount;
-      if (!owner) {
-        owner = createNewAccount(chainId, event.params.owner, context.Account.set);
-      }
+      // Ensure accounts using ||= standard
+      senderAccount ||= createNewAccount(chainId, event.params.sender, context.Account.set);
+      ownerAccount ||= createNewAccount(chainId, event.params.owner, context.Account.set);
       
-      // Ensure pool assets for collateral and reference tokens
-      let collPool = collateralPoolAsset;
-      if (!collPool) {
-        collPool = createNewPoolAsset(chainId, poolId, collateralAddr, context.PoolAsset.set);
-      }
-      let refPool = referencePoolAsset;
-      if (!refPool) {
-        refPool = createNewPoolAsset(chainId, poolId, referenceAddr, context.PoolAsset.set);
-      }
+      // Ensure pool assets using ||= standard
+      collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
+      referencePoolAsset ||= createNewPoolAsset(chainId, poolId, referenceAssetAddr, context.PoolAsset.set);
       
       // First pair: collateral/principal (assets0/shares0)
-      const assets0 = event.params.assets0;
-      const shares0 = event.params.shares0;
-      if (shares0 > 0n || assets0 > 0n) {
+      const { assets0 } = event.params;
+      if (assets0 > 0n) {
         // Total supply is managed by Transfer events, not here
         
         // Transfer collateral from pool - only pool asset balance tracking
-        context.PoolAssetEntry.set(makePoolAssetEntry(event, poolId, collateralAddr, -assets0));
-        context.PoolAsset.set(subFromBalance(collPool, assets0));
+        context.PoolAssetEntry.set(
+          makePoolAssetEntry(event, poolId, collateralAssetAddr, -assets0),
+        );
+        context.PoolAsset.set(subFromBalance(collateralPoolAsset, assets0));
       }
       
       // Second pair: reference/swap tokens (assets1/shares1)
-      const assets1 = event.params.assets1;
-      const shares1 = event.params.shares1;
-      if (shares1 > 0n || assets1 > 0n) {
+      const { assets1 } = event.params;
+      if (assets1 > 0n) {
         // Total supply is managed by Transfer events, not here
         
         // Transfer reference asset from pool - only pool asset balance tracking
-        context.PoolAssetEntry.set(makePoolAssetEntry(event, poolId, referenceAddr, -assets1));
-        context.PoolAsset.set(subFromBalance(refPool, assets1));
+        context.PoolAssetEntry.set(
+          makePoolAssetEntry(event, poolId, referenceAssetAddr, -assets1),
+        );
+        context.PoolAsset.set(subFromBalance(referencePoolAsset, assets1));
       }
       
       // Persist extended withdraw event
@@ -354,86 +292,66 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   Pool.Swap.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
-      const poolId = event.params.id as unknown as string;
+      const poolId = `${event.params.id}`;
       const pool = await context.Pool.get(makePoolId(chainId, poolId));
       if (!pool) {
         return [undefined];
       }
-      const refAddr = pool.referenceAssetAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const collAddr = pool.collateralAssetAddr;
+      const {referenceAssetAddr, collateralAssetAddr} = pool;
       return Promise.all([
         pool,
         // Load relevant tokens
-        refAddr ? context.Token.get(makeTokenId(chainId, refAddr)) : undefined,
-        collAddr ? context.Token.get(makeTokenId(chainId, collAddr)) : undefined,
+        referenceAssetAddr ? context.Token.get(makeTokenId(chainId, referenceAssetAddr)) : undefined,
+        collateralAssetAddr ? context.Token.get(makeTokenId(chainId, collateralAssetAddr)) : undefined,
         // Load swaper account
         context.Account.get(makeAccountId(chainId, event.params.swaper)),
         // Load pool assets for CA/REF tokens
-        refAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, refAddr)) : undefined,
-        collAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collAddr)) : undefined,
-      ]);
+        referenceAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)) : undefined,
+        collateralAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)) : undefined,
+      ] as const);
     },
     handler: async ({ event, context, loaderReturn }) => {
-      const [pool, refToken, collToken, swaperAccount, refPoolAsset, collPoolAsset] = loaderReturn as any[];
+      let [pool, referenceToken, collateralToken, swaperAccount, referencePoolAsset, collateralPoolAsset] = loaderReturn;
       const chainId = event.chainId;
-      const poolId = event.params.id as unknown as string;
+      const poolId = `${event.params.id}`;
       if (!pool) {
         context.log.error(`CorkPool: swap received for unknown pool ${poolId}`);
         return;
       }
-      const refAddr = pool.referenceAssetAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const collAddr = pool.collateralAssetAddr;
+      const {referenceAssetAddr, collateralAssetAddr} = pool;
       
-      // Ensure tokens exist using updated types
-      let refTok = refToken;
-      if (!refTok) {
-        refTok = createNewToken(chainId, refAddr, "REF", context.Token.set);
-      }
-      let colTok = collToken;
-      if (!colTok) {
-        colTok = createNewToken(chainId, collAddr, "CA", context.Token.set);
-      }
+      // Ensure tokens using ||= standard
+      referenceToken ||= createNewToken(chainId, referenceAssetAddr, "REF", context.Token.set);
+      collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
       
-      // Ensure account exists
-      let swaper = swaperAccount;
-      if (!swaper) {
-        swaper = createNewAccount(chainId, event.params.swaper, context.Account.set);
-      }
+      // Ensure account using ||= standard
+      swaperAccount ||= createNewAccount(chainId, event.params.swaper, context.Account.set);
       
-      // Ensure pool assets exist for CA/REF
-      let refPool = refPoolAsset;
-      if (!refPool) {
-        refPool = createNewPoolAsset(chainId, poolId, refAddr, context.PoolAsset.set);
-      }
-      let collPool = collPoolAsset;
-      if (!collPool) {
-        collPool = createNewPoolAsset(chainId, poolId, collAddr, context.PoolAsset.set);
-      }
+      // Ensure pool assets using ||= standard
+      referencePoolAsset ||= createNewPoolAsset(chainId, poolId, referenceAssetAddr, context.PoolAsset.set);
+      collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
       
-      // Extract amounts
-      const refAmountIn = event.params.paUsed;
-      const swapAmountIn = event.params.swapTokenUsed;
-      const caAmountOut = event.params.raReceived;
+
+      const {paUsed, swapTokenUsed, raReceived} = event.params;
+
       
       // REF: add to pool - only pool asset balance tracking
-      if (refAmountIn > 0n) {
+      if (paUsed > 0n) {
         context.PoolAssetEntry.set(
-          makePoolAssetEntry(event, poolId, refAddr, refAmountIn),
+          makePoolAssetEntry(event, poolId, referenceAssetAddr, paUsed),
         );
-        context.PoolAsset.set(addToBalance(refPool, refAmountIn));
+        context.PoolAsset.set(addToBalance(referencePoolAsset, paUsed));
       }
       
       // CST: CST balance changes handled by Transfer events, not here
       // We only track pool CST assets if needed for pool-level tracking
       
       // CA: transfer from pool - only pool asset balance tracking
-      if (caAmountOut > 0n) {
+      if (raReceived > 0n) {
         context.PoolAssetEntry.set(
-          makePoolAssetEntry(event, poolId, collAddr, -caAmountOut),
+          makePoolAssetEntry(event, poolId, collateralAssetAddr, -raReceived),
         );
-        context.PoolAsset.set(subFromBalance(collPool, caAmountOut));
+        context.PoolAsset.set(subFromBalance(collateralPoolAsset, raReceived));
       }
       
       // Persist swap event entity
@@ -460,83 +378,62 @@ export function attachEventHandlers<T extends typeof CorkPool>(
   Pool.UnwindSwap.handlerWithLoader({
     loader: async ({ event, context }) => {
       const chainId = event.chainId;
-      const poolId = event.params.id as unknown as string;
+      const poolId = `${event.params.id}`;
       const pool = await context.Pool.get(makePoolId(chainId, poolId));
       if (!pool) {
         return [undefined];
       }
-      const refAddr = pool.referenceAssetAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const collAddr = pool.collateralAssetAddr;
+      const {referenceAssetAddr, collateralAssetAddr} = pool;
       return Promise.all([
         pool,
         // Load relevant tokens
-        refAddr ? context.Token.get(makeTokenId(chainId, refAddr)) : undefined,
-        collAddr ? context.Token.get(makeTokenId(chainId, collAddr)) : undefined,
+        referenceAssetAddr ? context.Token.get(makeTokenId(chainId, referenceAssetAddr)) : undefined,
+        collateralAssetAddr ? context.Token.get(makeTokenId(chainId, collateralAssetAddr)) : undefined,
         // Load buyer account
         context.Account.get(makeAccountId(chainId, event.params.buyer)),
         // Load pool assets for CA/REF tokens
-        refAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, refAddr)) : undefined,
-        collAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collAddr)) : undefined,
-      ]);
+        referenceAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)) : undefined,
+        collateralAssetAddr ? context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)) : undefined,
+      ] as const);
     },
     handler: async ({ event, context, loaderReturn }) => {
-      const [pool, refToken, collToken, buyerAccount, refPoolAsset, collPoolAsset] = loaderReturn as any[];
+      let [pool, referenceToken, collateralToken, buyerAccount, referencePoolAsset, collateralPoolAsset] = loaderReturn;
       const chainId = event.chainId;
-      const poolId = event.params.id as unknown as string;
+      const poolId = `${event.params.id}`;
       if (!pool) {
         context.log.error(`CorkPool: unwindSwap received for unknown pool ${poolId}`);
         return;
       }
-      const refAddr = pool.referenceAssetAddr;
-      const swapAddr = pool.swapTokenAddr;
-      const collAddr = pool.collateralAssetAddr;
+      const {referenceAssetAddr, collateralAssetAddr} = pool;
       
-      // Ensure tokens
-      let refTok = refToken;
-      if (!refTok) {
-        refTok = createNewToken(chainId, refAddr, "REF", context.Token.set);
-      }
-      let colTok = collToken;
-      if (!colTok) {
-        colTok = createNewToken(chainId, collAddr, "CA", context.Token.set);
-      }
+      // Ensure tokens using ||= standard
+      referenceToken ||= createNewToken(chainId, referenceAssetAddr, "REF", context.Token.set);
+      collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
       
-      // Ensure account exists
-      let buyer = buyerAccount;
-      if (!buyer) {
-        buyer = createNewAccount(chainId, event.params.buyer, context.Account.set);
-      }
+      // Ensure account using ||= standard
+      buyerAccount ||= createNewAccount(chainId, event.params.buyer, context.Account.set);
       
-      // Ensure pool assets for CA/REF
-      let refPool = refPoolAsset;
-      if (!refPool) {
-        refPool = createNewPoolAsset(chainId, poolId, refAddr, context.PoolAsset.set);
-      }
-      let collPool = collPoolAsset;
-      if (!collPool) {
-        collPool = createNewPoolAsset(chainId, poolId, collAddr, context.PoolAsset.set);
-      }
+      // Ensure pool assets using ||= standard
+      referencePoolAsset ||= createNewPoolAsset(chainId, poolId, referenceAssetAddr, context.PoolAsset.set);
+      collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
       
       // Amounts
-      const caAmountIn = event.params.raUsed;
-      const refAmountOut = event.params.receivedReferenceAsset;
-      const swapAmountOut = event.params.receivedSwapToken;
-      
+      const {raUsed, receivedReferenceAsset, receivedSwapToken} = event.params;
+
       // Deposit CA: add to pool - only pool asset balance tracking
-      if (caAmountIn > 0n) {
+      if (raUsed > 0n) {
         context.PoolAssetEntry.set(
-          makePoolAssetEntry(event, poolId, collAddr, caAmountIn),
+          makePoolAssetEntry(event, poolId, collateralAssetAddr, raUsed),
         );
-        context.PoolAsset.set(addToBalance(collPool, caAmountIn));
+        context.PoolAsset.set(addToBalance(collateralPoolAsset, raUsed));
       }
       
       // Withdraw REF: subtract from pool - only pool asset balance tracking
-      if (refAmountOut > 0n) {
+      if (receivedReferenceAsset > 0n) {
         context.PoolAssetEntry.set(
-          makePoolAssetEntry(event, poolId, refAddr, -refAmountOut),
+          makePoolAssetEntry(event, poolId, referenceAssetAddr, -receivedReferenceAsset),
         );
-        context.PoolAsset.set(subFromBalance(refPool, refAmountOut));
+        context.PoolAsset.set(subFromBalance(referencePoolAsset, receivedReferenceAsset));
       }
       
       // CST: CST balance changes handled by Transfer events, not here
