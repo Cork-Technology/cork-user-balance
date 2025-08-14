@@ -21,7 +21,7 @@
     "typescript": "5.2.2"
   },
   "dependencies": {
-    "envio": "2.25.0"
+    "envio": "2.27.1"
   },
   "optionalDependencies": {
     "generated": "link:generated"

@@ -57,7 +57,6 @@ networks:
     - event: CorkPoolChanged(address indexed oldCorkPool, address indexed newCorkPool)
     - event: Initialized(uint64 version)
     - event: OwnershipTransferred(address indexed previousOwner, address indexed newOwner)
-    # - event: SharesDeployed(address indexed collateralAsset, address indexed principalToken, address indexed swapToken) # Same event as MarketCreated in CorkPool
     - event: Upgraded(address indexed implementation)
     
   - name: CPT
