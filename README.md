@@ -12,12 +12,33 @@ A comprehensive blockchain indexer for the Cork Protocol ecosystem, built with [
 
 ### Installation & Setup
 
+Setup the toolchain with pinned versions:
+
 ```bash
-# 1. Install and Generate code from schema and config
+curl --proto '=https' --tlsv1.3 https://mise.run | sh
+eval "$(mise activate --shims)"
+echo "eval \"\$(mise activate bash)\"" >> ~/.bashrc
+exec bash
+
+# Installs Node.js v24 and pnpm v10
+mise trust
+mise install
+```
+
+## 🔧 Development Commands
+
+```bash
+# Install dependencies
+pnpm install
+
+# Generate TypeScript types from schema
 pnpm codegen
 
-# 3. Start the indexer
+# Start development server with hot reload
 pnpm dev
+
+# Run tests
+pnpm test
 ```
 
 ### Access the GraphQL Playground
@@ -79,22 +100,6 @@ src/
 | **Withdraw/Redeem (expired)**   | CPT + CST    | CA + REF          | CA ↓, REF ↓ |
 | **Swap/Exercise**                          | REF + CST     | CA                     | CA ↓, REF ↑ |
 | **UnwindSwap/UnwindExercise** | CA                  | REF + CST        | CA ↑, REF ↓ |
-
-## 🔧 Development Commands
-
-```bash
-# Install dependencies
-pnpm install
-
-# Generate TypeScript types from schema
-pnpm codegen
-
-# Start development server with hot reload
-pnpm dev
-
-# Run tests
-pnpm test
-```
 
 ## 📝 Configuration
 
