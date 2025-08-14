@@ -93,13 +93,13 @@ src/
 
 ### Token Flow Tracking
 
-| Operation                                        | Input Tokens | Output Tokens | Pool Assets  |
-|----------------------------------|--------------|----------------|-------------|
-| **Deposit/Mint**                            | CA                  | CPT + CST       | CA ↑             |
-| **UnwindDeposit/UnwindMint**   | CPT + CST    | CA                     | CA ↓             |
-| **Withdraw/Redeem (expired)**   | CPT + CST    | CA + REF          | CA ↓, REF ↓ |
-| **Swap/Exercise**                          | REF + CST     | CA                     | CA ↓, REF ↑ |
-| **UnwindSwap/UnwindExercise** | CA                  | REF + CST        | CA ↑, REF ↓ |
+| Operation                        | Input Tokens | Output Tokens  | Pool Assets  |
+|----------------------------------|--------------|----------------|--------------|
+| **Deposit/Mint**                 | CA           | CPT + CST      | CA ↑         |
+| **UnwindDeposit/UnwindMint**     | CPT + CST    | CA             | CA ↓         |
+| **Withdraw/Redeem (expired)**    | CPT + CST    | CA + REF       | CA ↓, REF ↓  |
+| **Swap/Exercise**                | REF + CST    | CA - CAFee     | CA ↓, REF ↑  |
+| **UnwindSwap/UnwindExercise**    | CA + CAFee   | REF + CST      | CA ↑, REF ↓  |
 
 ## 📝 Configuration
 
