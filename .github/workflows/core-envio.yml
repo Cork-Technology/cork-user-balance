@@ -80,7 +80,9 @@ jobs:
             DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
             DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
             DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
+            DSTACK_AWS_SESSION_TOKEN: ${{ secrets.DSTACK_AWS_SESSION_TOKEN }}
             AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
             AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
             AWS_DEFAULT_REGION: ${{ secrets.DSTACK_AWS_REGION }}
+            AWS_SESSION_TOKEN: ${{ secrets.DSTACK_AWS_SESSION_TOKEN }}
