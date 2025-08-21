@@ -13,6 +13,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY ./config.yaml ./config.yaml
 COPY ./schema.graphql ./schema.graphql
+COPY ./abis ./abis
 
 RUN pnpm envio codegen
 

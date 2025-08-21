@@ -1,22 +1,35 @@
 /*
- * Please refer to https://docs.envio.dev for a thorough guide on all Envio indexer features
+ * Helper utilities for creating and updating entities within the indexer.
+ *
+ * These functions abstract the construction of IDs and default entity
+ * instances, allowing event handlers to focus on business logic rather
+ * than boilerplate. The helpers mirror those from the previous project
+ * but have been adapted to the new data model.
  */
 import type {
   Account,
   AccountToken,
   AccountTokenEntry,
-  CoverTerm,
-  IsolatedMarket,
-  Pool,
-  PoolAsset,
-  PoolAssetEntry,
   Token,
   TokenApproval,
   TokenTransfer,
+  Pool,
+  PoolAsset,
+  PoolAssetEntry,
+  AssetPrice,
 } from "generated";
 
-type Event = { chainId: number, block: { number: number, timestamp: number }, logIndex: number }
+// A lightweight representation of an EVM event used for constructing IDs
+// and timestamped entries.
+type Event = {
+  chainId: number;
+  block: { number: number; timestamp: number };
+  logIndex: number;
+};
 
+/*
+ * ID builders
+ */
 export function makeAccountId(chainId: number, accountAddress: string): string {
   return `${chainId}:${accountAddress}`;
 }
@@ -43,45 +56,38 @@ export function makeTokenApprovalId(
 }
 
 export function makeTokenTransferId(event: Event): string {
-  return `${event.chainId}_${event.block.number}_${event.logIndex}`;
+  return `${event.chainId}:${event.block.number}:${event.logIndex}`;
 }
 
 export function makeAccountTokenEntryId(event: Event, accountAddress: string): string {
-  return `${event.chainId}_${event.block.number}_${event.logIndex}:${accountAddress}`;
+  return `${event.chainId}:${event.block.number}:${event.logIndex}`;
 }
 
-export function makeIsolatedMarketId(chainId: number, marketKey: string): string {
-  return `${chainId}:${marketKey}`;
+export function makePoolId(chainId: number, poolId: string): string {
+  return `${chainId}:${poolId}`;
 }
 
-export function makeCoverTermId(chainId: number, marketKey: string, termKey: bigint): string {
-  return `${chainId}:${marketKey}:${termKey}`;
+export function makePoolAssetId(chainId: number, poolId: string, tokenAddress: string): string {
+  return `${chainId}:${tokenAddress}:${poolId}`;
 }
 
-export function makePoolId(chainId: number, poolKey: string): string {
-  return `${chainId}:${poolKey}`;
+export function makePoolAssetEntryId(event: Event, poolId: string): string {
+  return `${event.chainId}:${event.block.number}:${event.logIndex}:${poolId}`;
 }
 
-export function makePoolAssetId(
-  chainId: number,
-  poolKey: string,
-  tokenAddress: string,
-): string {
-  return `${chainId}:${tokenAddress}:${poolKey}`;
+export function makeAssetPriceId(chainId: number, id: string): string {
+  return `${chainId}:${id}`;
 }
 
-export function makePoolAssetEntryId(event: Event, poolKey: string): string {
-  return `${event.chainId}_${event.block.number}_${event.logIndex}:${poolKey}`;
-}
-
-export function makeAccount(
-  chainId: number,
-  accountAddress: string,
-): Account {
-  return {
+/*
+ * Entity constructors (pure functions)
+ */
+export function makeAccount(chainId: number, accountAddress: string): Account {
+  const account: Account = {
     id: makeAccountId(chainId, accountAddress),
     address: accountAddress,
   };
+  return account;
 }
 
 export function makeToken(
@@ -89,12 +95,15 @@ export function makeToken(
   tokenAddress: string,
   tokenType: Token["typ"],
 ): Token {
-  return {
+  const token: Token = {
     id: makeTokenId(chainId, tokenAddress),
     address: tokenAddress,
     typ: tokenType,
     totalSupply: 0n,
+    // Pool relation is required by the generated type; will be set later when applicable
+    pool_id: (undefined as unknown) as string,
   };
+  return token;
 }
 
 export function makeAccountToken(
@@ -103,12 +112,13 @@ export function makeAccountToken(
   tokenAddress: string,
   balance: bigint,
 ): AccountToken {
-  return {
+  const accountToken: AccountToken = {
     id: makeAccountTokenId(chainId, accountAddress, tokenAddress),
     account_id: makeAccountId(chainId, accountAddress),
     token_id: makeTokenId(chainId, tokenAddress),
     balance,
-  }
+  };
+  return accountToken;
 }
 
 export function makeAccountTokenEntry(
@@ -116,17 +126,20 @@ export function makeAccountTokenEntry(
   accountAddress: string,
   tokenAddress: string,
   amount: bigint,
+  transferId?: string,
 ): AccountTokenEntry {
   const { chainId, block } = event;
-  return {
+  const resolvedTransferId = transferId ?? makeTokenTransferId(event);
+  const entry: AccountTokenEntry = {
     id: makeAccountTokenEntryId(event, accountAddress),
     account_id: makeAccountId(chainId, accountAddress),
     token_id: makeTokenId(chainId, tokenAddress),
-    transfer_id: makeTokenTransferId(event),
+    transfer_id: resolvedTransferId,
     amount,
     timestamp: new Date(block.timestamp * 1000),
     blockNumber: block.number,
   };
+  return entry;
 }
 
 export function makeTokenApproval(
@@ -137,7 +150,7 @@ export function makeTokenApproval(
   amount: bigint,
 ): TokenApproval {
   const { chainId, block } = event;
-  return {
+  const approval: TokenApproval = {
     id: makeTokenApprovalId(chainId, tokenAddress, ownerAddress, spenderAddress),
     token_id: makeTokenId(chainId, tokenAddress),
     owner_id: makeAccountId(chainId, ownerAddress),
@@ -146,6 +159,7 @@ export function makeTokenApproval(
     timestamp: new Date(block.timestamp * 1000),
     blockNumber: block.number,
   };
+  return approval;
 }
 
 export function makeTokenTransfer(
@@ -156,7 +170,7 @@ export function makeTokenTransfer(
   amount: bigint,
 ): TokenTransfer {
   const { chainId, block } = event;
-  return {
+  const transfer: TokenTransfer = {
     id: makeTokenTransferId(event),
     token_id: makeTokenId(chainId, tokenAddress),
     from_id: makeAccountId(chainId, fromAddress),
@@ -165,134 +179,122 @@ export function makeTokenTransfer(
     timestamp: new Date(block.timestamp * 1000),
     blockNumber: block.number,
   };
+  return transfer;
 }
 
-export function makeIsolatedMarket(
-  event: Event,
-  uniqueKey: string,
-  key: {
-    paTokenAddr: string,
-    raTokenAddr: string,
-    initialArp: bigint,
-    expiryInterval: bigint,
-    exchangeRateProvider: string,
-  }
-): IsolatedMarket {
-  const { chainId, block } = event;
-  const { paTokenAddr, raTokenAddr, initialArp, expiryInterval, exchangeRateProvider } = key;
-  return {
-    id: makeIsolatedMarketId(chainId, uniqueKey),
-    uniqueKey,
-    paTokenAddr,
-    raTokenAddr,
-    initialArp,
-    expiryInterval,
-    exchangeRateProvider,
-    startBlock: block.number,
-  };
-}
-
-export function makeCoverTerm(
-  event: Event,
-  marketKey: string,
-  termKey: bigint,
-): CoverTerm {
-  const { chainId, block } = event;
-  return {
-    id: makeCoverTermId(chainId, marketKey, termKey),
-    market_id: makeIsolatedMarketId(chainId, marketKey),
-    key: termKey,
-    startBlock: block.number,
-  };
-}
-
-export function makeLvPool(
+export function makePool(
   chainId: number,
-  managerAddress: string,
-  marketKey: string,
-  shareTokenAddress: string,
+  poolId: string,
+  details: {
+    poolIdBytes: string;
+    principalTokenAddr: string;
+    swapTokenAddr: string;
+    collateralAssetAddr: string;
+    referenceAssetAddr: string;
+    exchangeRateProviderAddr: string;
+    expiry: bigint;
+    startBlock: number;
+  },
 ): Pool {
-  // const poolKey = `${marketKey}:LV`;
-  const market_id = makeIsolatedMarketId(chainId, marketKey);
-  return {
-    id: `${market_id}:LV`,
-    typ: "MARKET_LV",
-    market_id,
-    term_id: undefined,
-    managerAddr: managerAddress,
-    shareToken_id: makeTokenId(chainId, shareTokenAddress),
+  const {
+    poolIdBytes,
+    principalTokenAddr,
+    swapTokenAddr,
+    collateralAssetAddr,
+    referenceAssetAddr,
+    exchangeRateProviderAddr,
+    expiry,
+    startBlock,
+  } = details;
+  const poolEntity: Pool = {
+    id: makePoolId(chainId, poolId),
+    poolId: poolIdBytes,
+    principalTokenAddr,
+    swapTokenAddr,
+    collateralAssetAddr,
+    referenceAssetAddr,
+    exchangeRateProviderAddr,
+    expiry,
+    startBlock,
+    // Link relations by ID as required by generated types
+    principalToken_id: makeTokenId(chainId, principalTokenAddr),
+    swapToken_id: makeTokenId(chainId, swapTokenAddr),
+    collateralAsset_id: makePoolAssetId(chainId, poolId, collateralAssetAddr),
+    referenceAsset_id: makePoolAssetId(chainId, poolId, referenceAssetAddr),
   };
-}
-
-export function makePsmPool(
-  chainId: number,
-  marketKey: string,
-  termKey: bigint,
-  managerAddress: string,
-  shareTokenAddress: string,
-): Pool {
-  // const poolKey = `${marketKey}:${termKey}:PSM`;
-  const term_id = makeCoverTermId(chainId, marketKey, termKey);
-  return {
-    id: `${term_id}:PSM`,
-    typ: "TERM_PSM",
-    market_id: undefined,
-    term_id,
-    managerAddr: managerAddress,
-    shareToken_id: makeTokenId(chainId, shareTokenAddress),
-  };
-}
-
-export function makeAmmPool(
-  chainId: number,
-  marketKey: string,
-  termKey: bigint,
-  managerAddress: string,
-  shareTokenAddress: string,
-): Pool {
-  // const poolKey = `${marketKey}:${termKey}:AMM`;
-  const term_id = makeCoverTermId(chainId, marketKey, termKey);
-  return {
-    id: `${term_id}:AMM`,
-    typ: "TERM_AMM",
-    market_id: undefined,
-    term_id,
-    managerAddr: managerAddress,
-    shareToken_id: makeTokenId(chainId, shareTokenAddress),
-  };
+  return poolEntity;
 }
 
 export function makePoolAsset(
   chainId: number,
-  poolKey: string,
+  poolId: string,
   tokenAddress: string,
   balance: bigint,
 ): PoolAsset {
-  return {
-    id: makePoolAssetId(chainId, poolKey, tokenAddress),
-    pool_id: makePoolId(chainId, poolKey),
+  const poolAsset: PoolAsset = {
+    id: makePoolAssetId(chainId, poolId, tokenAddress),
+    pool_id: makePoolId(chainId, poolId),
     token_id: makeTokenId(chainId, tokenAddress),
     balance,
   };
+  return poolAsset;
 }
 
 export function makePoolAssetEntry(
   event: Event,
-  poolKey: string,
+  poolId: string,
   tokenAddress: string,
   amount: bigint,
 ): PoolAssetEntry {
   const { chainId, block } = event;
-  return {
-    id: makePoolAssetEntryId(event, poolKey),
-    pool_id: makePoolId(chainId, poolKey),
-    token_id: makeTokenId(chainId, tokenAddress),
+  const entry: PoolAssetEntry = {
+    id: makePoolAssetEntryId(event, poolId),
+    // Link directly to the specific PoolAsset as per generated types
+    poolAsset_id: makePoolAssetId(chainId, poolId, tokenAddress),
     amount,
     timestamp: new Date(block.timestamp * 1000),
     blockNumber: block.number,
   };
+  return entry;
 }
 
+export function makeAssetPrice(
+  chainId: number,
+  assetId: string,
+  details: {
+    lastAnswer: bigint;
+    decimals: number;
+    updatedAt: Date;
+    toCurrency: string;
+    fromTokenAddr: string;
+    toTokenAddr: string;
+  },
+): AssetPrice {
+  const {
+    lastAnswer,
+    decimals,
+    updatedAt,
+    toCurrency,
+    fromTokenAddr,
+    toTokenAddr,
+  } = details;
+  const price: AssetPrice = {
+    id: makeAssetPriceId(chainId, assetId),
+    lastAnswer,
+    decimals,
+    updatedAt,
+    toCurrency,
+    fromToken_id: makeTokenId(chainId, fromTokenAddr),
+    toToken_id: makeTokenId(chainId, toTokenAddr),
+  };
+  return price;
+}
+
+/*
+ * Entity creators that write directly to storage via the provided set
+ * functions. These helpers encapsulate the creation of new entities
+ * and immediately persist them to the database.
+ */
 export function createNewAccount(
   chainId: number,
   accountAddress: string,
@@ -318,34 +320,71 @@ export function createNewAccountToken(
   chainId: number,
   accountAddress: string,
   tokenAddress: string,
-  setAccountToken: (accountToken: AccountToken) => void
+  setAccountToken: (accountToken: AccountToken) => void,
 ): AccountToken {
   const accountToken = makeAccountToken(chainId, accountAddress, tokenAddress, 0n);
   setAccountToken(accountToken);
   return accountToken;
 }
 
+export function createNewPool(
+  chainId: number,
+  poolId: string,
+  details: Parameters<typeof makePool>[2],
+  setPool: (pool: Pool) => void,
+): Pool {
+  const pool = makePool(chainId, poolId, details);
+  setPool(pool);
+  return pool;
+}
+
 export function createNewPoolAsset(
   chainId: number,
-  poolKey: string,
+  poolId: string,
   tokenAddress: string,
-  setPoolAsset: (poolAsset: PoolAsset) => void
+  setPoolAsset: (poolAsset: PoolAsset) => void,
 ): PoolAsset {
-  const poolAsset = makePoolAsset(chainId, poolKey, tokenAddress, 0n);
+  const poolAsset = makePoolAsset(chainId, poolId, tokenAddress, 0n);
   setPoolAsset(poolAsset);
   return poolAsset;
 }
 
-export function addToBalance<T extends AccountToken | PoolAsset>(
-  accountToken: T,
+export function createNewPoolAssetEntry(
+  event: Event,
+  poolId: string,
+  tokenAddress: string,
   amount: bigint,
-): T {
-  return { ...accountToken, balance: accountToken.balance + amount };
+  setPoolAssetEntry: (entry: PoolAssetEntry) => void,
+): PoolAssetEntry {
+  const entry = makePoolAssetEntry(event, poolId, tokenAddress, amount);
+  setPoolAssetEntry(entry);
+  return entry;
 }
 
-export function subFromBalance<T extends AccountToken | PoolAsset>(
-  accountToken: T,
-  amount: bigint,
-): T {
-  return { ...accountToken, balance: accountToken.balance - amount };
+export function createNewAssetPrice(
+  chainId: number,
+  assetId: string,
+  details: Parameters<typeof makeAssetPrice>[2],
+  setAssetPrice: (assetPrice: AssetPrice) => void,
+): AssetPrice {
+  const price = makeAssetPrice(chainId, assetId, details);
+  setAssetPrice(price);
+  return price;
+}
+
+/*
+ * Balance helpers: these functions produce updated copies of an entity
+ * with the balance adjusted by the specified amount. They do not
+ * perform any writes on their own.
+ */
+export function addToBalance(entity: AccountToken, amount: bigint): AccountToken;
+export function addToBalance(entity: PoolAsset, amount: bigint): PoolAsset;
+export function addToBalance(entity: AccountToken | PoolAsset, amount: bigint): AccountToken | PoolAsset {
+  return { ...entity, balance: (entity.balance ?? 0n) + amount };
+}
+
+export function subFromBalance(entity: AccountToken, amount: bigint): AccountToken;
+export function subFromBalance(entity: PoolAsset, amount: bigint): PoolAsset;
+export function subFromBalance(entity: AccountToken | PoolAsset, amount: bigint): AccountToken | PoolAsset {
+  return { ...entity, balance: (entity.balance ?? 0n) - amount };
 }

@@ -1,5 +1,5 @@
 {
-  "name": "envio-indexer",
+  "name": "cork-indexer",
   "version": "0.1.0",
   "scripts": {
     "clean": "tsc --clean",
@@ -8,8 +8,8 @@
     "mocha": "ts-mocha test/**/*.ts",
     "codegen": "envio codegen",
     "dev": "envio dev",
-    "test": "pnpm mocha",
-    "start": "envio start"
+    "start": "envio start",
+    "test": "pnpm mocha"
   },
   "devDependencies": {
     "@types/chai": "^4.3.20",
@@ -18,9 +18,10 @@
     "chai": "4.3.10",
     "mocha": "10.2.0",
     "ts-mocha": "^10.1.0",
-    "ts-node": "10.9.1",
-    "typescript": "5.2.2",
-    "envio": "2.25.1"
+    "typescript": "5.2.2"
+  },
+  "dependencies": {
+    "envio": "2.27.1"
   },
   "optionalDependencies": {
     "generated": "link:generated"
@@ -28,7 +29,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "dependencies": {
-    "@envio-dev/hypersync-client": "0.6.5"
-  }
+  "packageManager": "pnpm@10.14.0+sha512.ad27a79641b49c3e481a16a805baa71817a04bbe06a38d17e60e2eaee83f6a146c6a688125f5792e48dd5ba30e7da52a5cda4c3992b9ccf333f9ce223af84748"
 }
