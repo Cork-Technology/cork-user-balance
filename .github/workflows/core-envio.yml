@@ -10,7 +10,6 @@ on:
       disk_size:   { required: false, type: string, default: "10" }
     secrets:
       PHALA_CLOUD_API_KEY:          { required: true }
-      PHALA_APP_ID:                 { required: true }
       DOCKER_IMAGE:                 { required: true }
       DSTACK_AWS_ACCESS_KEY_ID:     { required: true }
       DSTACK_AWS_SECRET_ACCESS_KEY: { required: true }
@@ -27,37 +26,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Render docker-compose for deployment
+      - name: Render docker-compose (YAML-safe)
         id: render
         shell: bash
         env:
-          FULL_IMAGE: ${{ secrets.DOCKER_IMAGE }}:${{ inputs.image_tag }}
+          FULL_IMAGE: ${{ secrets.DOCKER_IMAGE }}:${{ inputs.image_tag }}   # ecr repo:tag
           APP_NAME:   ${{ inputs.app_name }}
           DSTACK_AWS_ACCESS_KEY_ID:      ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
-          DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
+          DSTACK_AWS_SECRET_ACCESS_KEY:  ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
           DSTACK_AWS_REGION:             ${{ secrets.DSTACK_AWS_REGION }}
           DSTACK_AWS_ECR_REGISTRY:       ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
         run: |
           set -euo pipefail
-          esc() { printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'; }
           cp docker-compose.yml docker-compose.rendered.yml
-
-          sed -E -i "s|\$\{DOCKER_IMAGE\}|$(esc "$FULL_IMAGE")|g" docker-compose.rendered.yml
-          sed -E -i "s|container_name:\s*\$\{APP_NAME(:-[^}]*)?\}|container_name: $(esc "$APP_NAME")|g" docker-compose.rendered.yml
-          sed -E -i "s|\$\{DSTACK_AWS_ACCESS_KEY_ID(:-[^}]*)?\}|$(esc "$DSTACK_AWS_ACCESS_KEY_ID")|g" docker-compose.rendered.yml
-          sed -E -i "s|\$\{DSTACK_AWS_SECRET_ACCESS_KEY(:-[^}]*)?\}|$(esc "$DSTACK_AWS_SECRET_ACCESS_KEY")|g" docker-compose.rendered.yml
-          sed -E -i "s|\$\{DSTACK_AWS_REGION(:-[^}]*)?\}|$(esc "$DSTACK_AWS_REGION")|g" docker-compose.rendered.yml
-          sed -E -i "s|\$\{DSTACK_AWS_ECR_REGISTRY(:-[^}]*)?\}|$(esc "$DSTACK_AWS_ECR_REGISTRY")|g" docker-compose.rendered.yml
-
+      
+          # fetch yq (static binary)
+          curl -sL https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -o yq
+          chmod +x yq
+      
+          # set the exact image and container_name for the envio-indexer service
+          ./yq -i '.services."envio-indexer".image = strenv(FULL_IMAGE)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".container_name = strenv(APP_NAME)' docker-compose.rendered.yml
+      
+          # inject ECR auth envs so Phala can pull private ECR
+          ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_ACCESS_KEY_ID     = strenv(DSTACK_AWS_ACCESS_KEY_ID)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_SECRET_ACCESS_KEY = strenv(DSTACK_AWS_SECRET_ACCESS_KEY)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_REGION            = strenv(DSTACK_AWS_REGION)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_ECR_REGISTRY      = strenv(DSTACK_AWS_ECR_REGISTRY)' docker-compose.rendered.yml
+      
+          # guard: fail if any placeholders remain
+          if grep -E '\$\{(DOCKER_IMAGE|DSTACK_AWS_.*?)' -n docker-compose.rendered.yml; then
+            echo "::error::Placeholders still present in rendered compose"; exit 1; fi
+      
           echo "compose=docker-compose.rendered.yml" >> "$GITHUB_OUTPUT"
-
+    
       - name: Deploy to Phala Cloud
         uses: Leechael/phala-deploy-action@v2
         with:
           phala-api-key: ${{ secrets.PHALA_CLOUD_API_KEY }}
-          app-id:        ${{ secrets.PHALA_APP_ID }}
           cvm-name:      ${{ inputs.app_name }}
           compose-file:  ${{ steps.render.outputs.compose }}
           vcpu:          ${{ inputs.vcpu }}
           memory:        ${{ inputs.memory }}
           disk-size:     ${{ inputs.disk_size }}
+        
