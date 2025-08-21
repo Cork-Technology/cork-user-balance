@@ -14,8 +14,6 @@ on:
     secrets:
       PHALA_CLOUD_API_KEY: { required: true }
       # PHALA_APP_ID: { required: true }
-      HASURA_GRAPHQL_ADMIN_SECRET: { required: true }
-      ENVIO_POSTGRES_PASSWORD: { required: true }
       DSTACK_AWS_ACCESS_KEY_ID: { required: true }
       DSTACK_AWS_SECRET_ACCESS_KEY: { required: true }
       DSTACK_AWS_REGION: { required: true }
