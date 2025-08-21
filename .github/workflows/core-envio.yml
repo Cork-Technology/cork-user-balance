@@ -43,34 +43,32 @@ jobs:
         env:
           FULL_IMAGE: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
           APP_NAME: ${{ env.APP_NAME }}
-          HASURA_GRAPHQL_ADMIN_SECRET: ${{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}
-          ENVIO_POSTGRES_PASSWORD: ${{ secrets.ENVIO_POSTGRES_PASSWORD }}
           DSTACK_AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
           DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
           DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
           DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
         run: |
           set -euo pipefail
+      
+          # helper: escape / and & for sed replacements
+          esc() { printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'; }
+      
           cp docker-compose.yml docker-compose.rendered.yml
-
+      
           # 1) pin image to ECR:<tag>
-          sed -E -i "s|\$\{DOCKER_IMAGE\}|${FULL_IMAGE}|g" docker-compose.rendered.yml
-
+          sed -E -i "s|\$\{DOCKER_IMAGE\}|$(esc "$FULL_IMAGE")|g" docker-compose.rendered.yml
+      
           # 2) unique container_name per CVM
-          sed -E -i "s|container_name:\s*\$\{APP_NAME(:-[^}]*)?\}|container_name: ${APP_NAME}|g" docker-compose.rendered.yml
-
-          # 3) inject app secrets
-          sed -E -i "s/\$\{HASURA_GRAPHQL_ADMIN_SECRET(:-[^}]*)?\}/${HASURA_GRAPHQL_ADMIN_SECRET}/g" docker-compose.rendered.yml
-          sed -E -i "s/\$\{ENVIO_POSTGRES_PASSWORD(:-[^}]*)?\}/${ENVIO_POSTGRES_PASSWORD}/g" docker-compose.rendered.yml
-
-          # 4) inject ECR pull creds (Phala will use these to auth to ECR)
-          sed -E -i "s/\$\{DSTACK_AWS_ACCESS_KEY_ID(:-[^}]*)?\}/${DSTACK_AWS_ACCESS_KEY_ID}/g" docker-compose.rendered.yml
-          sed -E -i "s/\$\{DSTACK_AWS_SECRET_ACCESS_KEY(:-[^}]*)?\}/${DSTACK_AWS_SECRET_ACCESS_KEY}/g" docker-compose.rendered.yml
-          sed -E -i "s/\$\{DSTACK_AWS_REGION(:-[^}]*)?\}/${DSTACK_AWS_REGION}/g" docker-compose.rendered.yml
-          sed -E -i "s/\$\{DSTACK_AWS_ECR_REGISTRY(:-[^}]*)?\}/${DSTACK_AWS_ECR_REGISTRY}/g" docker-compose.rendered.yml
-
+          sed -E -i "s|container_name:\s*\$\{APP_NAME(:-[^}]*)?\}|container_name: $(esc "$APP_NAME")|g" docker-compose.rendered.yml
+      
+          # 3) inject app secrets (if you want them baked into compose)
+          sed -E -i "s|\$\{DSTACK_AWS_ACCESS_KEY_ID(:-[^}]*)?\}|$(esc "$DSTACK_AWS_ACCESS_KEY_ID")|g" docker-compose.rendered.yml
+          sed -E -i "s|\$\{DSTACK_AWS_SECRET_ACCESS_KEY(:-[^}]*)?\}|$(esc "$DSTACK_AWS_SECRET_ACCESS_KEY")|g" docker-compose.rendered.yml
+          sed -E -i "s|\$\{DSTACK_AWS_REGION(:-[^}]*)?\}|$(esc "$DSTACK_AWS_REGION")|g" docker-compose.rendered.yml
+          sed -E -i "s|\$\{DSTACK_AWS_ECR_REGISTRY(:-[^}]*)?\}|$(esc "$DSTACK_AWS_ECR_REGISTRY")|g" docker-compose.rendered.yml
+      
           echo "compose=docker-compose.rendered.yml" >> "$GITHUB_OUTPUT"
-
+      
       - name: Deploy to Phala Cloud
         uses: Leechael/phala-deploy-action@v2
         with:
