@@ -17,7 +17,6 @@ jobs:
     uses: ./.github/workflows/core-envio.yml
     with:
       environment: phoenix-contracts
-      docker_image: ${{ vars.DOCKER_IMAGE }}
       app_name: cork-phoenix-indexer
       image_tag: latest
       config_file: config.yaml
