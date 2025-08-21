@@ -53,6 +53,11 @@ jobs:
           ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_SECRET_ACCESS_KEY = strenv(DSTACK_AWS_SECRET_ACCESS_KEY)' docker-compose.rendered.yml
           ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_REGION            = strenv(DSTACK_AWS_REGION)' docker-compose.rendered.yml
           ./yq -i '.services."envio-indexer".environment.DSTACK_AWS_ECR_REGISTRY      = strenv(DSTACK_AWS_ECR_REGISTRY)' docker-compose.rendered.yml
+          # also provide standard AWS_* names for compatibility
+          ./yq -i '.services."envio-indexer".environment.AWS_ACCESS_KEY_ID     = strenv(DSTACK_AWS_ACCESS_KEY_ID)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".environment.AWS_SECRET_ACCESS_KEY = strenv(DSTACK_AWS_SECRET_ACCESS_KEY)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".environment.AWS_REGION            = strenv(DSTACK_AWS_REGION)' docker-compose.rendered.yml
+          ./yq -i '.services."envio-indexer".environment.AWS_DEFAULT_REGION    = strenv(DSTACK_AWS_REGION)' docker-compose.rendered.yml
       
           # guard: fail if any placeholders remain
           if grep -E '\$\{(DOCKER_IMAGE|DSTACK_AWS_.*?)' -n docker-compose.rendered.yml; then
@@ -75,3 +80,7 @@ jobs:
             DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
             DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
             DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
+            AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
+            AWS_DEFAULT_REGION: ${{ secrets.DSTACK_AWS_REGION }}
