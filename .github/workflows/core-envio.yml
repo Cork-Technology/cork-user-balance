@@ -4,7 +4,6 @@ on:
   workflow_call:
     inputs:
       environment: { description: "GitHub Environment", required: true, type: string }
-      docker_image: { description: "ECR repo, no tag", required: true, type: string }
       app_name: { description: "CVM/container_name", required: true, type: string }
       image_tag: { description: "Image tag in ECR", required: true, type: string }
       config_file: { description: "CONFIG_FILE", default: "config.yaml", required: false, type: string }
@@ -14,6 +13,7 @@ on:
     secrets:
       PHALA_CLOUD_API_KEY: { required: true }
       # PHALA_APP_ID: { required: true }
+      DOCKER_IMAGE: { required: true }
       DSTACK_AWS_ACCESS_KEY_ID: { required: true }
       DSTACK_AWS_SECRET_ACCESS_KEY: { required: true }
       DSTACK_AWS_REGION: { required: true }
@@ -29,7 +29,7 @@ jobs:
       cancel-in-progress: true
 
     env:
-      DOCKER_IMAGE: ${{ inputs.docker_image }}
+      DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
       DOCKER_TAG: ${{ inputs.image_tag }}
       APP_NAME: ${{ inputs.app_name }}
 
@@ -41,41 +41,32 @@ jobs:
         id: render
         shell: bash
         env:
-          FULL_IMAGE: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
-          APP_NAME: ${{ env.APP_NAME }}
+          FULL_IMAGE: ${{ secrets.DOCKER_IMAGE }}:${{ inputs.image_tag }}
+          APP_NAME: ${{ inputs.app_name }}
           DSTACK_AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
           DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
           DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
           DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
         run: |
           set -euo pipefail
-      
-          # helper: escape / and & for sed replacements
           esc() { printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'; }
-      
           cp docker-compose.yml docker-compose.rendered.yml
-      
-          # 1) pin image to ECR:<tag>
           sed -E -i "s|\$\{DOCKER_IMAGE\}|$(esc "$FULL_IMAGE")|g" docker-compose.rendered.yml
-      
-          # 2) unique container_name per CVM
           sed -E -i "s|container_name:\s*\$\{APP_NAME(:-[^}]*)?\}|container_name: $(esc "$APP_NAME")|g" docker-compose.rendered.yml
-      
-          # 3) inject app secrets (if you want them baked into compose)
           sed -E -i "s|\$\{DSTACK_AWS_ACCESS_KEY_ID(:-[^}]*)?\}|$(esc "$DSTACK_AWS_ACCESS_KEY_ID")|g" docker-compose.rendered.yml
           sed -E -i "s|\$\{DSTACK_AWS_SECRET_ACCESS_KEY(:-[^}]*)?\}|$(esc "$DSTACK_AWS_SECRET_ACCESS_KEY")|g" docker-compose.rendered.yml
           sed -E -i "s|\$\{DSTACK_AWS_REGION(:-[^}]*)?\}|$(esc "$DSTACK_AWS_REGION")|g" docker-compose.rendered.yml
           sed -E -i "s|\$\{DSTACK_AWS_ECR_REGISTRY(:-[^}]*)?\}|$(esc "$DSTACK_AWS_ECR_REGISTRY")|g" docker-compose.rendered.yml
-      
           echo "compose=docker-compose.rendered.yml" >> "$GITHUB_OUTPUT"
       
       - name: Deploy to Phala Cloud
         uses: Leechael/phala-deploy-action@v2
         with:
           phala-api-key: ${{ secrets.PHALA_CLOUD_API_KEY }}
-          cvm-name: ${{ env.APP_NAME }}
-          compose-file: ${{ steps.render.outputs.compose }}
+          cvm-name: ${{ inputs.app_name }}
+          compose-file: ${{ steps.render.outputs.compose }}   # ← use rendered file
           vcpu: ${{ inputs.vcpu }}
           memory: ${{ inputs.memory }}
           disk-size: ${{ inputs.disk_size }}
-          # app-id: ${{ secrets.PHALA_APP_ID }}
+          app-id: ${{ secrets.PHALA_APP_ID }}
+      
