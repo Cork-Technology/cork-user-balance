@@ -1,0 +1,85 @@
+name: Core | Build & Deploy (prebuilt image on ECR)
+
+on:
+  workflow_call:
+    inputs:
+      environment: { description: "GitHub Environment", required: true, type: string }
+      docker_image: { description: "ECR repo, no tag", required: true, type: string }
+      app_name: { description: "CVM/container_name", required: true, type: string }
+      image_tag: { description: "Image tag in ECR", required: true, type: string }
+      config_file: { description: "CONFIG_FILE", default: "config.yaml", required: false, type: string }
+      vcpu: { description: "CVM vCPU", default: "2", required: false, type: string }
+      memory: { description: "CVM RAM (MiB)", default: "2048", required: false, type: string }
+      disk_size: { description: "CVM disk size (GiB)", default: "10", required: false, type: string }
+    secrets:
+      PHALA_CLOUD_API_KEY: { required: true }
+      # PHALA_APP_ID: { required: true }
+      HASURA_GRAPHQL_ADMIN_SECRET: { required: true }
+      ENVIO_POSTGRES_PASSWORD: { required: true }
+      DSTACK_AWS_ACCESS_KEY_ID: { required: true }
+      DSTACK_AWS_SECRET_ACCESS_KEY: { required: true }
+      DSTACK_AWS_REGION: { required: true }
+      DSTACK_AWS_ECR_REGISTRY: { required: true }
+
+jobs:
+  deploy:
+    name: Deploy → ${{ inputs.app_name }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: envio-${{ inputs.app_name }}
+      cancel-in-progress: true
+
+    env:
+      DOCKER_IMAGE: ${{ inputs.docker_image }}
+      DOCKER_TAG: ${{ inputs.image_tag }}
+      APP_NAME: ${{ inputs.app_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Render docker-compose for deployment
+        id: render
+        shell: bash
+        env:
+          FULL_IMAGE: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+          APP_NAME: ${{ env.APP_NAME }}
+          HASURA_GRAPHQL_ADMIN_SECRET: ${{ secrets.HASURA_GRAPHQL_ADMIN_SECRET }}
+          ENVIO_POSTGRES_PASSWORD: ${{ secrets.ENVIO_POSTGRES_PASSWORD }}
+          DSTACK_AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
+          DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
+          DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
+          DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
+        run: |
+          set -euo pipefail
+          cp docker-compose.yml docker-compose.rendered.yml
+
+          # 1) pin image to ECR:<tag>
+          sed -E -i "s|\$\{DOCKER_IMAGE\}|${FULL_IMAGE}|g" docker-compose.rendered.yml
+
+          # 2) unique container_name per CVM
+          sed -E -i "s|container_name:\s*\$\{APP_NAME(:-[^}]*)?\}|container_name: ${APP_NAME}|g" docker-compose.rendered.yml
+
+          # 3) inject app secrets
+          sed -E -i "s/\$\{HASURA_GRAPHQL_ADMIN_SECRET(:-[^}]*)?\}/${HASURA_GRAPHQL_ADMIN_SECRET}/g" docker-compose.rendered.yml
+          sed -E -i "s/\$\{ENVIO_POSTGRES_PASSWORD(:-[^}]*)?\}/${ENVIO_POSTGRES_PASSWORD}/g" docker-compose.rendered.yml
+
+          # 4) inject ECR pull creds (Phala will use these to auth to ECR)
+          sed -E -i "s/\$\{DSTACK_AWS_ACCESS_KEY_ID(:-[^}]*)?\}/${DSTACK_AWS_ACCESS_KEY_ID}/g" docker-compose.rendered.yml
+          sed -E -i "s/\$\{DSTACK_AWS_SECRET_ACCESS_KEY(:-[^}]*)?\}/${DSTACK_AWS_SECRET_ACCESS_KEY}/g" docker-compose.rendered.yml
+          sed -E -i "s/\$\{DSTACK_AWS_REGION(:-[^}]*)?\}/${DSTACK_AWS_REGION}/g" docker-compose.rendered.yml
+          sed -E -i "s/\$\{DSTACK_AWS_ECR_REGISTRY(:-[^}]*)?\}/${DSTACK_AWS_ECR_REGISTRY}/g" docker-compose.rendered.yml
+
+          echo "compose=docker-compose.rendered.yml" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Phala Cloud
+        uses: Leechael/phala-deploy-action@v2
+        with:
+          phala-api-key: ${{ secrets.PHALA_CLOUD_API_KEY }}
+          cvm-name: ${{ env.APP_NAME }}
+          compose-file: ${{ steps.render.outputs.compose }}
+          vcpu: ${{ inputs.vcpu }}
+          memory: ${{ inputs.memory }}
+          disk-size: ${{ inputs.disk_size }}
+          # app-id: ${{ secrets.PHALA_APP_ID }}

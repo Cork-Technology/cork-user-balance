@@ -1,0 +1,27 @@
+name: Deploy (cork-phoenix) → Phala
+
+on:
+  push:
+    branches: [ cork-phoenix ]
+    paths:
+      - 'package.json'
+      - 'tsconfig.json'
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'src/**'
+      - '.github/workflows/**'
+  workflow_dispatch: {}
+
+jobs:
+  call-core:
+    uses: ./.github/workflows/core-envio.yml
+    with:
+      environment: phoenix-contracts
+      docker_image: ${{ vars.DOCKER_IMAGE }}
+      app_name: cork-phoenix-indexer
+      image_tag: latest
+      config_file: config.yaml
+      vcpu: '2'
+      memory: '2048'
+      disk_size: '10'
+    secrets: inherit
