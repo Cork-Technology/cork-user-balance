@@ -12,6 +12,9 @@ on:
       - '.github/workflows/**'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+
 jobs:
   call-core:
     uses: ./.github/workflows/core-envio.yml
@@ -23,4 +26,12 @@ jobs:
       vcpu: '2'
       memory: '2048'
       disk_size: '10'
-    secrets: inherit
+    secrets:
+      PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
+      PHALA_APP_ID: ${{ secrets.PHALA_APP_ID }}
+      DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}
+      DSTACK_AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
+      DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
+      DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
+      DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
+      DSTACK_AWS_SESSION_TOKEN: ${{ secrets.DSTACK_AWS_SESSION_TOKEN }}
