@@ -10,12 +10,12 @@ on:
       disk_size:   { required: false, type: string, default: "10" }
     secrets:
       PHALA_CLOUD_API_KEY:          { required: true }
+      PHALA_APP_ID:                 { required: true }
       DOCKER_IMAGE:                 { required: true }
       DSTACK_AWS_ACCESS_KEY_ID:     { required: true }
       DSTACK_AWS_SECRET_ACCESS_KEY: { required: true }
       DSTACK_AWS_REGION:            { required: true }
       DSTACK_AWS_ECR_REGISTRY:      { required: true }
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -74,7 +74,7 @@ jobs:
           vcpu:          ${{ inputs.vcpu }}
           memory:        ${{ inputs.memory }}
           disk-size:     ${{ inputs.disk_size }}
-        
+          app-id:        ${{ secrets.PHALA_APP_ID }}
           envs: |
             DSTACK_AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
             DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
