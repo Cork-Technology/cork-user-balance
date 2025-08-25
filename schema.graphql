@@ -60,6 +60,7 @@ type Token {
   approvals: [TokenApproval!]! @derivedFrom(field: "token")
   accounts: [AccountToken!]! @derivedFrom(field: "token")
   accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
+  prices: [TokenPrice!]! @derivedFrom(field: "token")
 }
 
 type TokenTransfer {
@@ -103,7 +104,8 @@ type Pool {
   exchangeRateProviderAddr: String! @index
   expiry: BigInt!
   startBlock: Int!
-  # Linked entities per ER Diagram
+  tvlUsd: BigInt
+  tvlUpdatedAt: Timestamp
   principalToken: Token!
   swapToken: Token!
   collateralAsset: PoolAsset!
@@ -139,6 +141,23 @@ type AssetPrice {
   toCurrency: String!
   fromToken: Token!
   toToken: Token!
+}
+
+type TokenPrice {
+  # id is the `chain-tokenAddress`
+  id: ID!
+  price: BigInt!
+  feedDecimals: Int!
+  updatedAt: Timestamp!
+  toCurrency: String!
+  token: Token!
+}
+
+# Reverse index of which pools use a given token
+type TokenPoolsIndex {
+  # id is the `chain-tokenAddress`
+  id: ID!
+  poolIds: [String!]!
 }
 
 
@@ -329,6 +348,20 @@ type ExchangeRateProvider_RateUpdated {
   id: ID!
   event_id: String!
   newRate: BigInt!
+}
+
+type ETH_USD_AnswerUpdated {
+  id: ID!
+  current: BigInt!
+  roundId: BigInt!
+  updatedAt: BigInt!
+}
+
+type STETH_USD_AnswerUpdated {
+  id: ID!
+  current: BigInt!
+  roundId: BigInt!
+  updatedAt: BigInt!
 }
 
 type SharesFactory_CorkPoolChanged {

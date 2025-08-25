@@ -74,4 +74,24 @@ networks:
     events:
       - event: Transfer(address indexed from, address indexed to, uint256 value)
       - event: Approval(address indexed owner, address indexed spender, uint256 value)
+
+- id: 1
+  start_block: 23217166
+  contracts:
+  - name: ETH_USD
+    address:
+    - 0x7c7FdFCa295a787ded12Bb5c1A49A8D2cC20E3F8
+    handler: src/EventHandlers.ts
+    abi_file_path: ./abis/chainlink_aggregator/Aggregator.json
+    events:
+      - event: AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
+
+  - name: STETH_USD
+    address:
+    - 0x26f196806f43E88FD27798C9e3fb8fdF4618240f
+    handler: src/EventHandlers.ts
+    abi_file_path: ./abis/chainlink_aggregator/Aggregator.json
+    events:
+      - event: AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
 unordered_multichain_mode: true
+

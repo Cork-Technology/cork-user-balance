@@ -39,6 +39,7 @@ import {
   addToBalance,
   subFromBalance,
 } from "../helper";
+import { recomputePoolTvl } from "../helper";
 
 export function attachEventHandlers<T extends typeof CorkPool>(
   Pool: T,
@@ -112,6 +113,19 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       swapToken: event.params.swapToken,
     };
     context.CorkPool_MarketCreated.set(entity);
+
+    // Update reverse index: token -> pools
+    const caIndexId = makeTokenId(chainId, collateralAsset);
+    const refIndexId = makeTokenId(chainId, referenceAsset);
+    const [caIndex, refIndex] = await Promise.all([
+      context.TokenPoolsIndex.get(caIndexId),
+      context.TokenPoolsIndex.get(refIndexId),
+    ]);
+    const poolKey = poolId; 
+    const nextCaPools = Array.from(new Set([...(caIndex?.poolIds ?? []), poolKey]));
+    const nextRefPools = Array.from(new Set([...(refIndex?.poolIds ?? []), poolKey]));
+    context.TokenPoolsIndex.set({ id: caIndexId, poolIds: nextCaPools });
+    context.TokenPoolsIndex.set({ id: refIndexId, poolIds: nextRefPools });
   });
 
   /**
@@ -187,6 +201,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
         shares: event.params.shares,
       };
       context.CorkPool_Deposit.set(entity);
+      await recomputePoolTvl(context, chainId, poolId);
     },
   });
 
@@ -281,6 +296,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
         shares1: event.params.shares1,
       };
       context.CorkPool_WithdrawExtended.set(entity);
+      await recomputePoolTvl(context, chainId, poolId);
     },
   });
 
@@ -367,6 +383,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
         fee: event.params.fee,
       };
       context.CorkPool_Swap.set(swapEntity);
+      await recomputePoolTvl(context, chainId, poolId);
     },
   });
 
@@ -452,6 +469,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
         exchangeRates: event.params.exchangeRates,
       };
       context.CorkPool_UnwindSwap.set(unwindEntity);
+      await recomputePoolTvl(context, chainId, poolId);
     },
   });
 

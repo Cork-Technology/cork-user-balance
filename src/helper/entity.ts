@@ -18,6 +18,7 @@ import type {
   PoolAssetEntry,
   AssetPrice,
 } from "generated";
+import { WAD } from "./constants";
 
 // A lightweight representation of an EVM event used for constructing IDs
 // and timestamped entries.
@@ -216,6 +217,8 @@ export function makePool(
     exchangeRateProviderAddr,
     expiry,
     startBlock,
+    tvlUsd: 0n,
+    tvlUpdatedAt: new Date(0),
     // Link relations by ID as required by generated types
     principalToken_id: makeTokenId(chainId, principalTokenAddr),
     swapToken_id: makeTokenId(chainId, swapTokenAddr),
@@ -288,6 +291,52 @@ export function makeAssetPrice(
     toToken_id: makeTokenId(chainId, toTokenAddr),
   };
   return price;
+}
+
+// TVL/Price helpers
+export function scaleToWad(value: bigint, fromDecimals: number): bigint {
+  if (fromDecimals === 18) return value;
+  if (fromDecimals < 18) return value * (10n ** BigInt(18 - fromDecimals));
+  return value / (10n ** BigInt(fromDecimals - 18));
+}
+
+export async function recomputePoolTvl(
+  context: any,
+  chainId: number,
+  poolId: string,
+): Promise<void> {
+  const pool = await context.Pool.get(makePoolId(chainId, poolId));
+  if (!pool) return;
+
+  const { collateralAssetAddr, referenceAssetAddr } = pool;
+  const [paCA, paREF] = await Promise.all([
+    context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)),
+    context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)),
+  ]);
+
+  let [priceCA, priceREF] = await Promise.all([
+    context.TokenPrice.get(makeTokenId(chainId, collateralAssetAddr)),
+    context.TokenPrice.get(makeTokenId(chainId, referenceAssetAddr)),
+  ]);
+
+  // todo: get token decimals from the token contract
+  const tokenCADec = 18;
+  const tokenREFDec = 18;
+
+  const caAmountWad = paCA ? scaleToWad(paCA.balance, tokenCADec) : 0n;
+  const refAmountWad = paREF ? scaleToWad(paREF.balance, tokenREFDec) : 0n;
+  const caPriceWad = priceCA ? scaleToWad(priceCA.price, priceCA.feedDecimals) : 0n;
+  const refPriceWad = priceREF ? scaleToWad(priceREF.price, priceREF.feedDecimals) : 0n;
+
+  const caValue = (caAmountWad * caPriceWad) / WAD;
+  const refValue = (refAmountWad * refPriceWad) / WAD;
+
+  const tvl = caValue + refValue;
+  context.Pool.set({
+    ...pool,
+    tvlUsd: tvl,
+    tvlUpdatedAt: new Date(),
+  });
 }
 
 /*
