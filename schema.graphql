@@ -60,7 +60,7 @@ type Token {
   approvals: [TokenApproval!]! @derivedFrom(field: "token")
   accounts: [AccountToken!]! @derivedFrom(field: "token")
   accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
-  prices: [TokenPrice!]! @derivedFrom(field: "token")
+  priceUpdates: [TokenPrice!]! @derivedFrom(field: "token")
 }
 
 type TokenTransfer {
@@ -104,8 +104,6 @@ type Pool {
   exchangeRateProviderAddr: String! @index
   expiry: BigInt!
   startBlock: Int!
-  tvlUsd: BigInt
-  tvlUpdatedAt: Timestamp
   principalToken: Token!
   swapToken: Token!
   collateralAsset: PoolAsset!
@@ -117,8 +115,12 @@ type PoolAsset {
   # id is the `chain-poolId-tokenAddress`
   id: ID!
   balance: BigInt! @index
-  pool: Pool!
-  token: Token!
+  tvlUsd: BigInt
+  tvlUpdatedAt: Timestamp
+  # optional list of intermediate token IDs to reach USD (e.g., [ETH_token_id, USDT_token_id])
+  usdHops: [String!]
+  pool: Pool! @index
+  token: Token! @index
   # entries logged against this pool asset
   entries: [PoolAssetEntry!]! @derivedFrom(field: "poolAsset")
 }
@@ -138,9 +140,9 @@ type AssetPrice {
   lastAnswer: BigInt!
   decimals: Int!
   updatedAt: Timestamp! @index
-  toCurrency: String!
-  fromToken: Token!
-  toToken: Token!
+  toCurrency: String
+  fromToken: Token! @index
+  toToken: Token @index
 }
 
 type TokenPrice {
@@ -154,11 +156,7 @@ type TokenPrice {
 }
 
 # Reverse index of which pools use a given token
-type TokenPoolsIndex {
-  # id is the `chain-tokenAddress`
-  id: ID!
-  poolIds: [String!]!
-}
+  
 
 
 
@@ -350,14 +348,7 @@ type ExchangeRateProvider_RateUpdated {
   newRate: BigInt!
 }
 
-type ETH_USD_AnswerUpdated {
-  id: ID!
-  current: BigInt!
-  roundId: BigInt!
-  updatedAt: BigInt!
-}
-
-type STETH_USD_AnswerUpdated {
+type PriceFeed_AnswerUpdated {
   id: ID!
   current: BigInt!
   roundId: BigInt!

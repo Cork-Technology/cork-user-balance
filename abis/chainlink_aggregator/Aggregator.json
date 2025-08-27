@@ -2,233 +2,68 @@
     {
         "inputs": [
             {
+                "internalType": "uint32",
+                "name": "_maximumGasPrice",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "_reasonableGasPrice",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "_microLinkPerEth",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "_linkGweiPerObservation",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "_linkGweiPerTransmission",
+                "type": "uint32"
+            },
+            {
                 "internalType": "contract LinkTokenInterface",
-                "name": "link",
+                "name": "_link",
                 "type": "address"
             },
             {
                 "internalType": "int192",
-                "name": "minAnswer_",
+                "name": "_minAnswer",
                 "type": "int192"
             },
             {
                 "internalType": "int192",
-                "name": "maxAnswer_",
+                "name": "_maxAnswer",
                 "type": "int192"
             },
             {
                 "internalType": "contract AccessControllerInterface",
-                "name": "billingAccessController",
+                "name": "_billingAccessController",
                 "type": "address"
             },
             {
                 "internalType": "contract AccessControllerInterface",
-                "name": "requesterAccessController",
+                "name": "_requesterAccessController",
                 "type": "address"
             },
             {
                 "internalType": "uint8",
-                "name": "decimals_",
+                "name": "_decimals",
                 "type": "uint8"
             },
             {
                 "internalType": "string",
-                "name": "description_",
+                "name": "description",
                 "type": "string"
-            },
-            {
-                "internalType": "address",
-                "name": "secondaryProxy_",
-                "type": "address"
-            },
-            {
-                "internalType": "uint32",
-                "name": "cutoffTime_",
-                "type": "uint32"
-            },
-            {
-                "internalType": "uint32",
-                "name": "maxSyncIterations_",
-                "type": "uint32"
             }
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
-    },
-    {
-        "inputs": [],
-        "name": "CalldataLengthMismatch",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "CannotTransferPayeeToSelf",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "ConfigDigestMismatch",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "DuplicateSigner",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "FMustBePositive",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "FaultyOracleFTooHigh",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "InsufficientBalance",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "InsufficientFunds",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "InsufficientGas",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "InvalidOnChainConfig",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "LeftGasCannotExceedInitialGas",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "MaxSyncIterationsReached",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "MedianIsOutOfMinMaxRange",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "NumObservationsOutOfBounds",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OnlyCallableByEOA",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OnlyCurrentPayeeCanUpdate",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OnlyOwnerAndBillingAdminCanCall",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OnlyOwnerAndRequesterCanCall",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OnlyPayeeCanWithdraw",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OnlyProposedPayeesCanAccept",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "OracleLengthMismatch",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "PayeeAlreadySet",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "RepeatedSignerAddress",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "RepeatedTransmitterAddress",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "ReportLengthMismatch",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "RoundNotFound",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "SignatureError",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "SignaturesOutOfRegistration",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "StaleReport",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "TooFewValuesToTrustMedian",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "TooManyOracles",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "TransferRemainingFundsFailed",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "TransmittersSizeNotEqualPayeeSize",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "UnauthorizedTransmitter",
-        "type": "error"
-    },
-    {
-        "inputs": [],
-        "name": "WrongNumberOfSignatures",
-        "type": "error"
     },
     {
         "anonymous": false,
@@ -293,32 +128,32 @@
             {
                 "indexed": false,
                 "internalType": "uint32",
-                "name": "maximumGasPriceGwei",
+                "name": "maximumGasPrice",
                 "type": "uint32"
             },
             {
                 "indexed": false,
                 "internalType": "uint32",
-                "name": "reasonableGasPriceGwei",
+                "name": "reasonableGasPrice",
                 "type": "uint32"
             },
             {
                 "indexed": false,
                 "internalType": "uint32",
-                "name": "observationPaymentGjuels",
+                "name": "microLinkPerEth",
                 "type": "uint32"
             },
             {
                 "indexed": false,
                 "internalType": "uint32",
-                "name": "transmissionPaymentGjuels",
+                "name": "linkGweiPerObservation",
                 "type": "uint32"
             },
             {
                 "indexed": false,
-                "internalType": "uint24",
-                "name": "accountingGas",
-                "type": "uint24"
+                "internalType": "uint32",
+                "name": "linkGweiPerTransmission",
+                "type": "uint32"
             }
         ],
         "name": "BillingSet",
@@ -347,12 +182,6 @@
             },
             {
                 "indexed": false,
-                "internalType": "bytes32",
-                "name": "configDigest",
-                "type": "bytes32"
-            },
-            {
-                "indexed": false,
                 "internalType": "uint64",
                 "name": "configCount",
                 "type": "uint64"
@@ -372,25 +201,19 @@
             {
                 "indexed": false,
                 "internalType": "uint8",
-                "name": "f",
+                "name": "threshold",
                 "type": "uint8"
             },
             {
                 "indexed": false,
-                "internalType": "bytes",
-                "name": "onchainConfig",
-                "type": "bytes"
-            },
-            {
-                "indexed": false,
                 "internalType": "uint64",
-                "name": "offchainConfigVersion",
+                "name": "encodedConfigVersion",
                 "type": "uint64"
             },
             {
                 "indexed": false,
                 "internalType": "bytes",
-                "name": "offchainConfig",
+                "name": "encoded",
                 "type": "bytes"
             }
         ],
@@ -401,28 +224,15 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": false,
-                "internalType": "uint32",
-                "name": "cutoffTime",
-                "type": "uint32"
-            }
-        ],
-        "name": "CutoffTimeSet",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
                 "indexed": true,
                 "internalType": "contract LinkTokenInterface",
-                "name": "oldLinkToken",
+                "name": "_oldLinkToken",
                 "type": "address"
             },
             {
                 "indexed": true,
                 "internalType": "contract LinkTokenInterface",
-                "name": "newLinkToken",
+                "name": "_newLinkToken",
                 "type": "address"
             }
         ],
@@ -477,12 +287,6 @@
             },
             {
                 "indexed": false,
-                "internalType": "uint32",
-                "name": "observationsTimestamp",
-                "type": "uint32"
-            },
-            {
-                "indexed": false,
                 "internalType": "int192[]",
                 "name": "observations",
                 "type": "int192[]"
@@ -495,21 +299,9 @@
             },
             {
                 "indexed": false,
-                "internalType": "int192",
-                "name": "juelsPerFeeCoin",
-                "type": "int192"
-            },
-            {
-                "indexed": false,
                 "internalType": "bytes32",
-                "name": "configDigest",
+                "name": "rawReportContext",
                 "type": "bytes32"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint40",
-                "name": "epochAndRound",
-                "type": "uint40"
             }
         ],
         "name": "NewTransmission",
@@ -638,19 +430,6 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "uint32",
-                "name": "primaryRoundId",
-                "type": "uint32"
-            }
-        ],
-        "name": "PrimaryFeedUnlocked",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
                 "indexed": false,
                 "internalType": "address",
                 "name": "user",
@@ -690,9 +469,9 @@
             },
             {
                 "indexed": false,
-                "internalType": "bytes32",
+                "internalType": "bytes16",
                 "name": "configDigest",
-                "type": "bytes32"
+                "type": "bytes16"
             },
             {
                 "indexed": false,
@@ -708,38 +487,6 @@
             }
         ],
         "name": "RoundRequested",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "uint32",
-                "name": "secondaryRoundId",
-                "type": "uint32"
-            }
-        ],
-        "name": "SecondaryRoundIdUpdated",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": false,
-                "internalType": "bytes32",
-                "name": "configDigest",
-                "type": "bytes32"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint32",
-                "name": "epoch",
-                "type": "uint32"
-            }
-        ],
-        "name": "Transmitted",
         "type": "event"
     },
     {
@@ -784,7 +531,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "transmitter",
+                "name": "_transmitter",
                 "type": "address"
             }
         ],
@@ -804,6 +551,19 @@
         "name": "addAccess",
         "outputs": [],
         "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "billingAccessController",
+        "outputs": [
+            {
+                "internalType": "contract AccessControllerInterface",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -863,7 +623,7 @@
         "inputs": [
             {
                 "internalType": "uint256",
-                "name": "roundId",
+                "name": "_roundId",
                 "type": "uint256"
             }
         ],
@@ -884,41 +644,28 @@
         "outputs": [
             {
                 "internalType": "uint32",
-                "name": "maximumGasPriceGwei",
+                "name": "maximumGasPrice",
                 "type": "uint32"
             },
             {
                 "internalType": "uint32",
-                "name": "reasonableGasPriceGwei",
+                "name": "reasonableGasPrice",
                 "type": "uint32"
             },
             {
                 "internalType": "uint32",
-                "name": "observationPaymentGjuels",
+                "name": "microLinkPerEth",
                 "type": "uint32"
             },
             {
                 "internalType": "uint32",
-                "name": "transmissionPaymentGjuels",
+                "name": "linkGweiPerObservation",
                 "type": "uint32"
             },
             {
-                "internalType": "uint24",
-                "name": "accountingGas",
-                "type": "uint24"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getBillingAccessController",
-        "outputs": [
-            {
-                "internalType": "contract AccessControllerInterface",
-                "name": "",
-                "type": "address"
+                "internalType": "uint32",
+                "name": "linkGweiPerTransmission",
+                "type": "uint32"
             }
         ],
         "stateMutability": "view",
@@ -938,23 +685,10 @@
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "getRequesterAccessController",
-        "outputs": [
-            {
-                "internalType": "contract AccessControllerInterface",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
         "inputs": [
             {
                 "internalType": "uint80",
-                "name": "roundId",
+                "name": "_roundId",
                 "type": "uint80"
             }
         ],
@@ -962,7 +696,7 @@
         "outputs": [
             {
                 "internalType": "uint80",
-                "name": "roundId_",
+                "name": "roundId",
                 "type": "uint80"
             },
             {
@@ -993,7 +727,7 @@
         "inputs": [
             {
                 "internalType": "uint256",
-                "name": "roundId",
+                "name": "_roundId",
                 "type": "uint256"
             }
         ],
@@ -1003,37 +737,6 @@
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getTransmitters",
-        "outputs": [
-            {
-                "internalType": "address[]",
-                "name": "",
-                "type": "address[]"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "getValidatorConfig",
-        "outputs": [
-            {
-                "internalType": "contract AggregatorValidatorInterface",
-                "name": "validator",
-                "type": "address"
-            },
-            {
-                "internalType": "uint32",
-                "name": "gasLimit",
-                "type": "uint32"
             }
         ],
         "stateMutability": "view",
@@ -1091,32 +794,9 @@
                 "type": "uint32"
             },
             {
-                "internalType": "bytes32",
+                "internalType": "bytes16",
                 "name": "configDigest",
-                "type": "bytes32"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "latestConfigDigestAndEpoch",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "scanLogs",
-                "type": "bool"
-            },
-            {
-                "internalType": "bytes32",
-                "name": "configDigest",
-                "type": "bytes32"
-            },
-            {
-                "internalType": "uint32",
-                "name": "epoch",
-                "type": "uint32"
+                "type": "bytes16"
             }
         ],
         "stateMutability": "view",
@@ -1186,9 +866,9 @@
         "name": "latestTransmissionDetails",
         "outputs": [
             {
-                "internalType": "bytes32",
+                "internalType": "bytes16",
                 "name": "configDigest",
-                "type": "bytes32"
+                "type": "bytes16"
             },
             {
                 "internalType": "uint32",
@@ -1202,12 +882,12 @@
             },
             {
                 "internalType": "int192",
-                "name": "latestAnswer_",
+                "name": "latestAnswer",
                 "type": "int192"
             },
             {
                 "internalType": "uint64",
-                "name": "latestTimestamp_",
+                "name": "latestTimestamp",
                 "type": "uint64"
             }
         ],
@@ -1232,9 +912,9 @@
         "name": "maxAnswer",
         "outputs": [
             {
-                "internalType": "int256",
+                "internalType": "int192",
                 "name": "",
-                "type": "int256"
+                "type": "int192"
             }
         ],
         "stateMutability": "view",
@@ -1245,9 +925,9 @@
         "name": "minAnswer",
         "outputs": [
             {
-                "internalType": "int256",
+                "internalType": "int192",
                 "name": "",
-                "type": "int256"
+                "type": "int192"
             }
         ],
         "stateMutability": "view",
@@ -1257,16 +937,16 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "transmitterAddress",
+                "name": "_signerOrTransmitter",
                 "type": "address"
             }
         ],
         "name": "oracleObservationCount",
         "outputs": [
             {
-                "internalType": "uint32",
+                "internalType": "uint16",
                 "name": "",
-                "type": "uint32"
+                "type": "uint16"
             }
         ],
         "stateMutability": "view",
@@ -1276,7 +956,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "transmitterAddress",
+                "name": "_transmitter",
                 "type": "address"
             }
         ],
@@ -1296,7 +976,7 @@
         "name": "owner",
         "outputs": [
             {
-                "internalType": "address",
+                "internalType": "address payable",
                 "name": "",
                 "type": "address"
             }
@@ -1331,31 +1011,44 @@
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "requesterAccessController",
+        "outputs": [
+            {
+                "internalType": "contract AccessControllerInterface",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "uint32",
-                "name": "maximumGasPriceGwei",
+                "name": "_maximumGasPrice",
                 "type": "uint32"
             },
             {
                 "internalType": "uint32",
-                "name": "reasonableGasPriceGwei",
+                "name": "_reasonableGasPrice",
                 "type": "uint32"
             },
             {
                 "internalType": "uint32",
-                "name": "observationPaymentGjuels",
+                "name": "_microLinkPerEth",
                 "type": "uint32"
             },
             {
                 "internalType": "uint32",
-                "name": "transmissionPaymentGjuels",
+                "name": "_linkGweiPerObservation",
                 "type": "uint32"
             },
             {
-                "internalType": "uint24",
-                "name": "accountingGas",
-                "type": "uint24"
+                "internalType": "uint32",
+                "name": "_linkGweiPerTransmission",
+                "type": "uint32"
             }
         ],
         "name": "setBilling",
@@ -1380,32 +1073,27 @@
         "inputs": [
             {
                 "internalType": "address[]",
-                "name": "signers",
+                "name": "_signers",
                 "type": "address[]"
             },
             {
                 "internalType": "address[]",
-                "name": "transmitters",
+                "name": "_transmitters",
                 "type": "address[]"
             },
             {
                 "internalType": "uint8",
-                "name": "f",
+                "name": "_threshold",
                 "type": "uint8"
             },
             {
-                "internalType": "bytes",
-                "name": "onchainConfig",
-                "type": "bytes"
-            },
-            {
                 "internalType": "uint64",
-                "name": "offchainConfigVersion",
+                "name": "_encodedConfigVersion",
                 "type": "uint64"
             },
             {
                 "internalType": "bytes",
-                "name": "offchainConfig",
+                "name": "_encoded",
                 "type": "bytes"
             }
         ],
@@ -1417,26 +1105,13 @@
     {
         "inputs": [
             {
-                "internalType": "uint32",
-                "name": "_cutoffTime",
-                "type": "uint32"
-            }
-        ],
-        "name": "setCutoffTime",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
                 "internalType": "contract LinkTokenInterface",
-                "name": "linkToken",
+                "name": "_linkToken",
                 "type": "address"
             },
             {
                 "internalType": "address",
-                "name": "recipient",
+                "name": "_recipient",
                 "type": "address"
             }
         ],
@@ -1449,12 +1124,12 @@
         "inputs": [
             {
                 "internalType": "address[]",
-                "name": "transmitters",
+                "name": "_transmitters",
                 "type": "address[]"
             },
             {
                 "internalType": "address[]",
-                "name": "payees",
+                "name": "_payees",
                 "type": "address[]"
             }
         ],
@@ -1467,7 +1142,7 @@
         "inputs": [
             {
                 "internalType": "contract AccessControllerInterface",
-                "name": "requesterAccessController",
+                "name": "_requesterAccessController",
                 "type": "address"
             }
         ],
@@ -1480,12 +1155,12 @@
         "inputs": [
             {
                 "internalType": "contract AggregatorValidatorInterface",
-                "name": "newValidator",
+                "name": "_newValidator",
                 "type": "address"
             },
             {
                 "internalType": "uint32",
-                "name": "newGasLimit",
+                "name": "_newGasLimit",
                 "type": "uint32"
             }
         ],
@@ -1498,7 +1173,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "to",
+                "name": "_to",
                 "type": "address"
             }
         ],
@@ -1511,12 +1186,12 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "transmitter",
+                "name": "_transmitter",
                 "type": "address"
             },
             {
                 "internalType": "address",
-                "name": "proposed",
+                "name": "_proposed",
                 "type": "address"
             }
         ],
@@ -1528,28 +1203,23 @@
     {
         "inputs": [
             {
-                "internalType": "bytes32[3]",
-                "name": "reportContext",
-                "type": "bytes32[3]"
-            },
-            {
                 "internalType": "bytes",
-                "name": "report",
+                "name": "_report",
                 "type": "bytes"
             },
             {
                 "internalType": "bytes32[]",
-                "name": "rs",
+                "name": "_rs",
                 "type": "bytes32[]"
             },
             {
                 "internalType": "bytes32[]",
-                "name": "ss",
+                "name": "_ss",
                 "type": "bytes32[]"
             },
             {
                 "internalType": "bytes32",
-                "name": "rawVs",
+                "name": "_rawVs",
                 "type": "bytes32"
             }
         ],
@@ -1559,36 +1229,16 @@
         "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "transmitters",
+        "outputs": [
             {
-                "internalType": "bytes32[3]",
-                "name": "reportContext",
-                "type": "bytes32[3]"
-            },
-            {
-                "internalType": "bytes",
-                "name": "report",
-                "type": "bytes"
-            },
-            {
-                "internalType": "bytes32[]",
-                "name": "rs",
-                "type": "bytes32[]"
-            },
-            {
-                "internalType": "bytes32[]",
-                "name": "ss",
-                "type": "bytes32[]"
-            },
-            {
-                "internalType": "bytes32",
-                "name": "rawVs",
-                "type": "bytes32"
+                "internalType": "address[]",
+                "name": "",
+                "type": "address[]"
             }
         ],
-        "name": "transmitSecondary",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -1599,6 +1249,24 @@
                 "internalType": "string",
                 "name": "",
                 "type": "string"
+            }
+        ],
+        "stateMutability": "pure",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "validatorConfig",
+        "outputs": [
+            {
+                "internalType": "contract AggregatorValidatorInterface",
+                "name": "validator",
+                "type": "address"
+            },
+            {
+                "internalType": "uint32",
+                "name": "gasLimit",
+                "type": "uint32"
             }
         ],
         "stateMutability": "view",
@@ -1621,12 +1289,12 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "recipient",
+                "name": "_recipient",
                 "type": "address"
             },
             {
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "_amount",
                 "type": "uint256"
             }
         ],
@@ -1639,7 +1307,7 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "transmitter",
+                "name": "_transmitter",
                 "type": "address"
             }
         ],

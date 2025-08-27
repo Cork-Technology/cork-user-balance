@@ -2,8 +2,9 @@
 name: cork-indexer
 networks:
 - id: 11155111
-  start_block: 0
+  start_block: 8886593
   contracts:
+
 
   - name: CorkConfig
     address:
@@ -74,24 +75,40 @@ networks:
     events:
       - event: Transfer(address indexed from, address indexed to, uint256 value)
       - event: Approval(address indexed owner, address indexed spender, uint256 value)
+  
+  - name: LINK_USD
+    address:
+    - 0x5A2734CC0341ea6564dF3D00171cc99C63B1A7d3
+    handler: src/EventHandlers.ts
+    abi_file_path: ./abis/chainlink_aggregator/Aggregator.json
+    events:
+      - event: AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
 
-- id: 1
-  start_block: 23217166
-  contracts:
   - name: ETH_USD
     address:
-    - 0x7c7FdFCa295a787ded12Bb5c1A49A8D2cC20E3F8
+    - 0x719E22E3D4b690E5d96cCb40619180B5427F14AE
     handler: src/EventHandlers.ts
     abi_file_path: ./abis/chainlink_aggregator/Aggregator.json
     events:
       - event: AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
 
-  - name: STETH_USD
+  - name: WSTETH_USD
     address:
-    - 0x26f196806f43E88FD27798C9e3fb8fdF4618240f
+    - 0xaBc400913676a91A61B798Ed35962602de3544aF
     handler: src/EventHandlers.ts
     abi_file_path: ./abis/chainlink_aggregator/Aggregator.json
     events:
       - event: AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
+  
+  - name: BTC_ETH
+    address:
+    - 0x9d9305445F404E925563d5D5EcC65C815Ec1655b
+    handler: src/EventHandlers.ts
+    abi_file_path: ./abis/chainlink_aggregator/Aggregator.json
+    events:
+      - event: AnswerUpdated(int256 indexed current, uint256 indexed roundId, uint256 updatedAt)
+
 unordered_multichain_mode: true
+preload_handlers: true
+
 

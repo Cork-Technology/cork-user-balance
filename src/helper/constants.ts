@@ -3,16 +3,42 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 // Fixed-point scale (1e18)
 export const WAD = 10n ** 18n;
 
-export const TOKEN_DECIMALS: Record<string, number> = {
-  "0x0000000237805496906796B1e767640a804576DF": 18,
-  "0x22222228802B45325E0b8D0152C633449Ab06913": 18,
-};
 
-export const AGGREGATOR_TO_TOKEN: Record<string, string> = {
-  "0x7c7FdFCa295a787ded12Bb5c1A49A8D2cC20E3F8": "0x0000000237805496906796B1e767640a804576DF",
-  "0x26f196806f43E88FD27798C9e3fb8fdF4618240f": "0x22222228802B45325E0b8D0152C633449Ab06913",
-};
+// Deprecated: AGGREGATOR_TO_TOKEN removed in favor of PATH_TO_USD
 
 export const USD_SYMBOL = "USD";
 
-export const CHAIN_ID = 11155111;
+
+
+// Direct aggregator: O(1) lookups in handlers
+export const AGG_TO_STEP: Record<string, {
+  fromTokenAddr: string;
+  toTokenAddr?: string;
+  toCurrency?: string;
+  decimals: number;
+}> = {
+  // LINK/USD
+  "0x5a2734cc0341ea6564df3d00171cc99c63b1a7d3": {
+    fromTokenAddr: "0x0000000237805496906796b1e767640a804576df", // acting as LINK token while it is CETH
+    toCurrency: "USD",
+    decimals: 8,
+  },
+  // wstETH/USD
+  "0xabc400913676a91a61b798ed35962602de3544af": {
+    fromTokenAddr: "0x22222228802b45325e0b8d0152c633449ab06913", // acting as wstETH token while it is wamuETH
+    toCurrency: "USD",
+    decimals: 8,
+  },
+  // BTC/ETH
+  "0x9d9305445f404e925563d5d5ecc65c815ec1655b": {
+    fromTokenAddr: "0x33333335a697843fdd47d599680ccb91837f59af", // acting as BTC token while it is bsETH
+    toTokenAddr: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    decimals: 18,
+  },
+  // ETH/USD
+  "0x719e22e3d4b690e5d96ccb40619180b5427f14ae": {
+    fromTokenAddr: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    toCurrency: "USD",
+    decimals: 8,
+  },
+};

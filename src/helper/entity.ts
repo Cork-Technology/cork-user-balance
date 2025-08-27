@@ -21,7 +21,7 @@ import type {
 import { WAD } from "./constants";
 
 // A lightweight representation of an EVM event used for constructing IDs
-// and timestamped entries.
+// and timestamped entries. 
 type Event = {
   chainId: number;
   block: { number: number; timestamp: number };
@@ -77,7 +77,8 @@ export function makePoolAssetEntryId(event: Event, poolId: string): string {
 }
 
 export function makeAssetPriceId(chainId: number, id: string): string {
-  return `${chainId}:${id}`;
+  const [from, to] = id.split(":");
+  return `${chainId}:${from}:${to}`;
 }
 
 /*
@@ -217,8 +218,6 @@ export function makePool(
     exchangeRateProviderAddr,
     expiry,
     startBlock,
-    tvlUsd: 0n,
-    tvlUpdatedAt: new Date(0),
     // Link relations by ID as required by generated types
     principalToken_id: makeTokenId(chainId, principalTokenAddr),
     swapToken_id: makeTokenId(chainId, swapTokenAddr),
@@ -239,6 +238,9 @@ export function makePoolAsset(
     pool_id: makePoolId(chainId, poolId),
     token_id: makeTokenId(chainId, tokenAddress),
     balance,
+    tvlUsd: 0n,
+    tvlUpdatedAt: new Date(),
+    usdHops: [],
   };
   return poolAsset;
 }
@@ -268,9 +270,9 @@ export function makeAssetPrice(
     lastAnswer: bigint;
     decimals: number;
     updatedAt: Date;
-    toCurrency: string;
+    toCurrency?: string | null;
     fromTokenAddr: string;
-    toTokenAddr: string;
+    toTokenAddr?: string | null;
   },
 ): AssetPrice {
   const {
@@ -286,9 +288,9 @@ export function makeAssetPrice(
     lastAnswer,
     decimals,
     updatedAt,
-    toCurrency,
+    toCurrency: (toCurrency ?? undefined) as any,
     fromToken_id: makeTokenId(chainId, fromTokenAddr),
-    toToken_id: makeTokenId(chainId, toTokenAddr),
+    toToken_id: toTokenAddr ? makeTokenId(chainId, toTokenAddr) : (undefined as unknown) as string,
   };
   return price;
 }
@@ -305,6 +307,9 @@ export async function recomputePoolTvl(
   chainId: number,
   poolId: string,
 ): Promise<void> {
+
+  if (context.isPreload) return;
+
   const pool = await context.Pool.get(makePoolId(chainId, poolId));
   if (!pool) return;
 
@@ -314,29 +319,63 @@ export async function recomputePoolTvl(
     context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)),
   ]);
 
-  let [priceCA, priceREF] = await Promise.all([
-    context.TokenPrice.get(makeTokenId(chainId, collateralAssetAddr)),
-    context.TokenPrice.get(makeTokenId(chainId, referenceAssetAddr)),
-  ]);
+  // Resolve USD price via AssetPrice graph (token -> ... -> USD)
+  const priceCA = await resolveUsdPrice(context, chainId, collateralAssetAddr);
+  const priceREF = await resolveUsdPrice(context, chainId, referenceAssetAddr);
 
-  // todo: get token decimals from the token contract
-  const tokenCADec = 18;
-  const tokenREFDec = 18;
-
-  const caAmountWad = paCA ? scaleToWad(paCA.balance, tokenCADec) : 0n;
-  const refAmountWad = paREF ? scaleToWad(paREF.balance, tokenREFDec) : 0n;
-  const caPriceWad = priceCA ? scaleToWad(priceCA.price, priceCA.feedDecimals) : 0n;
-  const refPriceWad = priceREF ? scaleToWad(priceREF.price, priceREF.feedDecimals) : 0n;
+  const caAmountWad = paCA?.balance ?? 0n;
+  const refAmountWad = paREF?.balance ?? 0n;
+  const caPriceWad = priceCA ?? 0n;
+  const refPriceWad = priceREF ?? 0n;
 
   const caValue = (caAmountWad * caPriceWad) / WAD;
   const refValue = (refAmountWad * refPriceWad) / WAD;
 
-  const tvl = caValue + refValue;
-  context.Pool.set({
-    ...pool,
-    tvlUsd: tvl,
-    tvlUpdatedAt: new Date(),
-  });
+  // Write per-asset TVL values; pool-level summing can be done in the UI
+  if (paCA) {
+    context.PoolAsset.set({ ...paCA, tvlUsd: caValue, tvlUpdatedAt: new Date() });
+  }
+  if (paREF) {
+    context.PoolAsset.set({ ...paREF, tvlUsd: refValue, tvlUpdatedAt: new Date() });
+  }
+}
+
+// Resolve token -> USD by walking AssetPrice edges (lowercase IDs only).
+// Returns 18-decimal WAD or 0n if unresolved.
+async function resolveUsdPrice(
+  context: any,
+  chainId: number,
+  tokenAddr: string,
+  visited: Set<string> = new Set(),
+): Promise<bigint> {
+  const addr = tokenAddr;
+  const tokenId = makeTokenId(chainId, addr);
+
+  if (visited.has(tokenId)) return 0n; // prevent cycles
+  visited.add(tokenId);
+
+  // 1) Direct token -> USD
+  const direct = await context.AssetPrice.get(
+    makeAssetPriceId(chainId, `${addr}:USD`)
+  );
+  if (direct) {
+    return scaleToWad(direct.lastAnswer, direct.decimals);
+  }
+
+  // 2) Indirect: token -> midToken, then midToken -> USD
+  const edges = await context.AssetPrice.getWhere.fromToken_id.eq(tokenId);
+  if (edges?.length) {
+    for (const edge of edges) {
+      if (!edge.toToken_id) continue;
+      const midTokenAddr = edge.toToken_id.split(":")[1];
+      const midUsd = await resolveUsdPrice(context, chainId, midTokenAddr, visited);
+      if (midUsd > 0n) {
+        const edgePriceWad = scaleToWad(edge.lastAnswer, edge.decimals);
+        return (edgePriceWad * midUsd) / WAD;
+      }
+    }
+  }
+  return 0n;
 }
 
 /*

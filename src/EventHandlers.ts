@@ -15,7 +15,9 @@ import {
   CPT,
   CST,
   ETH_USD,
-  STETH_USD,
+  WSTETH_USD,
+  BTC_ETH,
+  LINK_USD,
 } from "generated";
 
 import { attachEventHandlers as attachCorkConfigHandlers } from "./handler/CorkConfig";
@@ -24,7 +26,7 @@ import { attachEventHandlers as attachCorkPoolHandlers } from "./handler/CorkPoo
 import { attachEventHandlers as attachExchangeRateProviderHandlers } from "./handler/ExchangeRateProvider";
 import { attachEventHandlers as attachCorkPTHandlers } from "./handler/CorkPT";
 import { attachEventHandlers as attachCorkSTHandlers } from "./handler/CorkST";
-import { attachETHUSDHandlers, attachSTETHUSDHandlers } from "./handler/ChainlinkAggregator";
+import { attachUSDPriceFeedHandlers } from "./handler/ChainlinkAggregator";
 
 // Attach all custom handlers to their respective contracts.
 // Each handler module encapsulates the logic required to react to
@@ -35,5 +37,7 @@ attachExchangeRateProviderHandlers(ExchangeRateProvider);
 attachSharesFactoryHandlers(SharesFactory);
 attachCorkPTHandlers(CPT);
 attachCorkSTHandlers(CST);
-attachETHUSDHandlers(ETH_USD);
-attachSTETHUSDHandlers(STETH_USD);
+attachUSDPriceFeedHandlers(ETH_USD);
+attachUSDPriceFeedHandlers(WSTETH_USD);
+attachUSDPriceFeedHandlers(BTC_ETH);
+attachUSDPriceFeedHandlers(LINK_USD);
