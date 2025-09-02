@@ -154,8 +154,6 @@ type TokenPrice {
   toCurrency: String!
   token: Token!
 }
-
-# Reverse index of which pools use a given token
   
 
 
