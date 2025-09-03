@@ -10,8 +10,7 @@ export function attachUSDPriceFeedHandlers(
 
   Aggregator.AnswerUpdated.handler(async ({ event, context }) => {
 
-    const src = (event.srcAddress as string).toLowerCase();
-    const oracleSec = Number(event.params.updatedAt);
+    const src = event.srcAddress.toLowerCase();
 
     const entity: PriceFeed_AnswerUpdated = {
       id: `${event.chainId}_${event.block.number}_${src}_${event.logIndex}`,

@@ -103,7 +103,7 @@ export function makeToken(
     typ: tokenType,
     totalSupply: 0n,
     // Pool relation is required by the generated type; will be set later when applicable
-    pool_id: (undefined as unknown) as string,
+    pool_id: undefined,
   };
   return token;
 }
@@ -288,9 +288,9 @@ export function makeAssetPrice(
     lastAnswer,
     decimals,
     updatedAt,
-    toCurrency: (toCurrency ?? undefined) as any,
+    toCurrency: (toCurrency ?? undefined),
     fromToken_id: makeTokenId(chainId, fromTokenAddr),
-    toToken_id: toTokenAddr ? makeTokenId(chainId, toTokenAddr) : (undefined as unknown) as string,
+    toToken_id: toTokenAddr ? makeTokenId(chainId, toTokenAddr) : undefined,
   };
   return price;
 }

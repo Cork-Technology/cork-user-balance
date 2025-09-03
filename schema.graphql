@@ -60,7 +60,6 @@ type Token {
   approvals: [TokenApproval!]! @derivedFrom(field: "token")
   accounts: [AccountToken!]! @derivedFrom(field: "token")
   accountEntries: [AccountTokenEntry!]! @derivedFrom(field: "token")
-  priceUpdates: [TokenPrice!]! @derivedFrom(field: "token")
 }
 
 type TokenTransfer {
@@ -143,16 +142,6 @@ type AssetPrice {
   toCurrency: String
   fromToken: Token! @index
   toToken: Token @index
-}
-
-type TokenPrice {
-  # id is the `chain-tokenAddress`
-  id: ID!
-  price: BigInt!
-  feedDecimals: Int!
-  updatedAt: Timestamp!
-  toCurrency: String!
-  token: Token!
 }
   
 
