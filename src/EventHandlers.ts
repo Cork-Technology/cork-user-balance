@@ -18,6 +18,10 @@ import {
   WSTETH_USD,
   BTC_ETH,
   LINK_USD,
+  XAU_USD,
+  DAI_USD,
+  EUR_USD,
+  GBP_USD,
 } from "generated";
 
 import { attachEventHandlers as attachCorkConfigHandlers } from "./handler/CorkConfig";
@@ -41,3 +45,7 @@ attachUSDPriceFeedHandlers(ETH_USD);
 attachUSDPriceFeedHandlers(WSTETH_USD);
 attachUSDPriceFeedHandlers(BTC_ETH);
 attachUSDPriceFeedHandlers(LINK_USD);
+attachUSDPriceFeedHandlers(XAU_USD);
+attachUSDPriceFeedHandlers(DAI_USD);
+attachUSDPriceFeedHandlers(EUR_USD);
+attachUSDPriceFeedHandlers(GBP_USD);

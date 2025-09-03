@@ -239,8 +239,7 @@ export function makePoolAsset(
     token_id: makeTokenId(chainId, tokenAddress),
     balance,
     tvlUsd: 0n,
-    tvlUpdatedAt: new Date(),
-    usdHops: [],
+    tvlUpdatedAt: new Date()
   };
   return poolAsset;
 }

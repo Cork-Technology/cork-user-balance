@@ -1,16 +1,16 @@
-import type { ETH_USD, WSTETH_USD, BTC_ETH, LINK_USD, PriceFeed_AnswerUpdated } from "generated";
+import type { ETH_USD, WSTETH_USD, BTC_ETH, LINK_USD, XAU_USD, DAI_USD, EUR_USD, GBP_USD, PriceFeed_AnswerUpdated } from "generated";
 import { USD_SYMBOL, AGG_TO_STEP } from "../helper";
 import { makeTokenId, recomputePoolTvl, makeAssetPrice } from "../helper";
 
 export function attachUSDPriceFeedHandlers(
-  Aggregator: typeof ETH_USD | typeof WSTETH_USD | typeof BTC_ETH | typeof LINK_USD
+  Aggregator: typeof ETH_USD | typeof WSTETH_USD | typeof BTC_ETH | typeof LINK_USD | typeof XAU_USD | typeof DAI_USD | typeof EUR_USD | typeof GBP_USD
 ): void {
 
   type Step = { aggregator: string; fromTokenAddr: string; toTokenAddr?: string; toCurrency?: string; decimals: number };
 
   Aggregator.AnswerUpdated.handler(async ({ event, context }) => {
 
-    const src = event.srcAddress.toLowerCase();
+    const src = event.srcAddress;
 
     const entity: PriceFeed_AnswerUpdated = {
       id: `${event.chainId}_${event.block.number}_${src}_${event.logIndex}`,

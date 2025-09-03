@@ -116,8 +116,6 @@ type PoolAsset {
   balance: BigInt! @index
   tvlUsd: BigInt
   tvlUpdatedAt: Timestamp
-  # optional list of intermediate token IDs to reach USD (e.g., [ETH_token_id, USDT_token_id])
-  usdHops: [String!]
   pool: Pool! @index
   token: Token! @index
   # entries logged against this pool asset
