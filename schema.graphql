@@ -103,7 +103,6 @@ type Pool {
   exchangeRateProviderAddr: String! @index
   expiry: BigInt!
   startBlock: Int!
-  # Linked entities per ER Diagram
   principalToken: Token!
   swapToken: Token!
   collateralAsset: PoolAsset!
@@ -115,8 +114,10 @@ type PoolAsset {
   # id is the `chain-poolId-tokenAddress`
   id: ID!
   balance: BigInt! @index
-  pool: Pool!
-  token: Token!
+  tvlUsd: BigInt
+  tvlUpdatedAt: Timestamp
+  pool: Pool! @index
+  token: Token! @index
   # entries logged against this pool asset
   entries: [PoolAssetEntry!]! @derivedFrom(field: "poolAsset")
 }
@@ -136,10 +137,11 @@ type AssetPrice {
   lastAnswer: BigInt!
   decimals: Int!
   updatedAt: Timestamp! @index
-  toCurrency: String!
-  fromToken: Token!
-  toToken: Token!
+  toCurrency: String
+  fromToken: Token! @index
+  toToken: Token @index
 }
+  
 
 
 
@@ -329,6 +331,13 @@ type ExchangeRateProvider_RateUpdated {
   id: ID!
   event_id: String!
   newRate: BigInt!
+}
+
+type PriceFeed_AnswerUpdated {
+  id: ID!
+  current: BigInt!
+  roundId: BigInt!
+  updatedAt: BigInt!
 }
 
 type SharesFactory_CorkPoolChanged {

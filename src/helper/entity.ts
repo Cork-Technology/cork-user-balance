@@ -17,10 +17,11 @@ import type {
   PoolAsset,
   PoolAssetEntry,
   AssetPrice,
+  PriceFeed_AnswerUpdated,
 } from "generated";
 
 // A lightweight representation of an EVM event used for constructing IDs
-// and timestamped entries.
+// and timestamped entries. 
 type Event = {
   chainId: number;
   block: { number: number; timestamp: number };
@@ -75,8 +76,20 @@ export function makePoolAssetEntryId(event: Event, poolId: string): string {
   return `${event.chainId}:${event.block.number}:${event.logIndex}:${poolId}`;
 }
 
-export function makeAssetPriceId(chainId: number, id: string): string {
-  return `${chainId}:${id}`;
+export function makeAssetPriceId(chainId: number, fromTokenAddr: string, toTokenAddr?: string, toCurrency?: string): string {
+  return `${chainId}:${toCurrency ? `${fromTokenAddr}:${toCurrency}` : `${fromTokenAddr}:${toTokenAddr}`}`;
+}
+
+export function makeCorkPool_DepositId(chainId: number, blockNumber: number, logIndex: number): string {
+  return `${chainId}:${blockNumber}:${logIndex}`;
+}
+
+export function makeCorkPool_WithdrawExtendedId(chainId: number, blockNumber: number, logIndex: number): string {
+  return `${chainId}:${blockNumber}:${logIndex}`;
+}
+
+export function makePriceFeed_AnswerUpdatedId(chainId: number, blockNumber: number, srcAddress: string, logIndex: number): string {
+  return `${chainId}:${blockNumber}:${srcAddress}:${logIndex}`;
 }
 
 /*
@@ -101,7 +114,7 @@ export function makeToken(
     typ: tokenType,
     totalSupply: 0n,
     // Pool relation is required by the generated type; will be set later when applicable
-    pool_id: (undefined as unknown) as string,
+    pool_id: undefined,
   };
   return token;
 }
@@ -236,6 +249,8 @@ export function makePoolAsset(
     pool_id: makePoolId(chainId, poolId),
     token_id: makeTokenId(chainId, tokenAddress),
     balance,
+    tvlUsd: 0n,
+    tvlUpdatedAt: new Date()
   };
   return poolAsset;
 }
@@ -260,15 +275,15 @@ export function makePoolAssetEntry(
 
 export function makeAssetPrice(
   chainId: number,
-  assetId: string,
   details: {
     lastAnswer: bigint;
     decimals: number;
     updatedAt: Date;
-    toCurrency: string;
+    toCurrency?: string;
     fromTokenAddr: string;
-    toTokenAddr: string;
+    toTokenAddr?: string;
   },
+  setAssetPrice: (assetPrice: AssetPrice) => void,
 ): AssetPrice {
   const {
     lastAnswer,
@@ -279,15 +294,36 @@ export function makeAssetPrice(
     toTokenAddr,
   } = details;
   const price: AssetPrice = {
-    id: makeAssetPriceId(chainId, assetId),
+    id: makeAssetPriceId(chainId, fromTokenAddr, toTokenAddr, toCurrency),
     lastAnswer,
     decimals,
     updatedAt,
-    toCurrency,
+    toCurrency: toCurrency,
     fromToken_id: makeTokenId(chainId, fromTokenAddr),
-    toToken_id: makeTokenId(chainId, toTokenAddr),
+    toToken_id: toTokenAddr ? makeTokenId(chainId, toTokenAddr) : undefined,
   };
+  setAssetPrice(price);
   return price;
+}
+
+export function createPriceFeed_AnswerUpdated(
+  chainId: number,
+  blockNumber: number,
+  srcAddress: string,
+  logIndex: number,
+  current: bigint,
+  roundId: bigint,
+  updatedAt: bigint,
+  setPriceFeed_AnswerUpdated: (priceFeed: PriceFeed_AnswerUpdated) => void,
+): PriceFeed_AnswerUpdated {
+  const PriceFeed: PriceFeed_AnswerUpdated = {
+    id: makePriceFeed_AnswerUpdatedId(chainId, blockNumber, srcAddress, logIndex),
+    current,
+    roundId,
+    updatedAt,
+  };
+  setPriceFeed_AnswerUpdated(PriceFeed);
+  return PriceFeed;
 }
 
 /*
@@ -359,17 +395,6 @@ export function createNewPoolAssetEntry(
   const entry = makePoolAssetEntry(event, poolId, tokenAddress, amount);
   setPoolAssetEntry(entry);
   return entry;
-}
-
-export function createNewAssetPrice(
-  chainId: number,
-  assetId: string,
-  details: Parameters<typeof makeAssetPrice>[2],
-  setAssetPrice: (assetPrice: AssetPrice) => void,
-): AssetPrice {
-  const price = makeAssetPrice(chainId, assetId, details);
-  setAssetPrice(price);
-  return price;
 }
 
 /*
