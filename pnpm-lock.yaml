@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      envio:
+        specifier: 2.27.6
+        version: 2.27.6(typescript@5.2.2)
     devDependencies:
       '@types/chai':
         specifier: ^4.3.20
@@ -20,9 +24,6 @@ importers:
       chai:
         specifier: 4.3.10
         version: 4.3.10
-      envio:
-        specifier: 2.27.6
-        version: 2.27.6(typescript@5.2.2)
       mocha:
         specifier: 10.2.0
         version: 10.2.0

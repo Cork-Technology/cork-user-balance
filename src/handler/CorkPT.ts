@@ -27,11 +27,10 @@ export function attachEventHandlers<T extends typeof CPT>(
 ): void {
   // Handle CPT transfers with full balance tracking (preload-compatible)
   CPT.Transfer.handler(async ({ event, context }) => {
+
     const chainId = event.chainId;
     const tokenAddress = event.srcAddress;
-    const fromAddress = event.params.from;
-    const toAddress = event.params.to;
-    const amount = event.params.value;
+    const { from: fromAddress, to: toAddress, value: amount } = event.params;
 
     const [token, fromAccount, toAccount, fromAccountToken, toAccountToken] = await Promise.all([
       context.Token.get(makeTokenId(chainId, tokenAddress)),
@@ -41,7 +40,8 @@ export function attachEventHandlers<T extends typeof CPT>(
       toAddress !== ZERO_ADDRESS ? context.AccountToken.get(makeAccountTokenId(chainId, toAddress, tokenAddress)) : Promise.resolve(undefined),
     ]);
 
-    // Ensure token exists (CPT type)
+    if (context.isPreload) return;
+
     let cptToken = token;
     if (!cptToken) {
       cptToken = createNewToken(chainId, tokenAddress, "CPT", context.Token.set);
@@ -49,12 +49,13 @@ export function attachEventHandlers<T extends typeof CPT>(
 
     // Update total supply based on minting/burning
     if (fromAddress === ZERO_ADDRESS) {
+      // Minting: increase total supply
       context.Token.set({ ...cptToken, totalSupply: (cptToken.totalSupply ?? 0n) + amount });
     } else if (toAddress === ZERO_ADDRESS) {
+      // Burning: decrease total supply
       context.Token.set({ ...cptToken, totalSupply: (cptToken.totalSupply ?? 0n) - amount });
     }
 
-    // Create missing accounts
     let fromAcc = fromAccount;
     if (!fromAcc && fromAddress !== ZERO_ADDRESS) {
       fromAcc = createNewAccount(chainId, fromAddress, context.Account.set);
@@ -78,6 +79,7 @@ export function attachEventHandlers<T extends typeof CPT>(
 
     // Update balances and create entries
     if (fromAddress !== ZERO_ADDRESS && fromAccToken) {
+      // Subtract from sender (normal transfer)
       context.AccountTokenEntry.set(
         makeAccountTokenEntry(event, fromAddress, tokenAddress, -amount, event.logIndex.toString()),
       );
@@ -87,6 +89,7 @@ export function attachEventHandlers<T extends typeof CPT>(
     }
 
     if (toAddress !== ZERO_ADDRESS && toAccToken) {
+      // Add to receiver (both normal transfer and minting from ZERO_ADDRESS)
       context.AccountTokenEntry.set(
         makeAccountTokenEntry(event, toAddress, tokenAddress, amount, event.logIndex.toString()),
       );
@@ -114,9 +117,13 @@ export function attachEventHandlers<T extends typeof CPT>(
     const { owner, spender, value } = event.params;
     const tokenAddress = event.srcAddress;
 
-    let token = await context.Token.get(makeTokenId(chainId, tokenAddress));
-    let ownerAccount = await context.Account.get(makeAccountId(chainId, owner));
+    let [token, ownerAccount] = await Promise.all([
+      context.Token.get(makeTokenId(chainId, tokenAddress)),
+      context.Account.get(makeAccountId(chainId, owner))
+    ]);
 
+    if (context.isPreload) return;
+    
     if (!token) {
       token = createNewToken(chainId, tokenAddress, "CST", context.Token.set);
     }

@@ -3,9 +3,6 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 // Fixed-point scale (1e18)
 export const WAD = 10n ** 18n;
 
-
-// Deprecated: AGGREGATOR_TO_TOKEN removed in favor of PATH_TO_USD
-
 export const USD_SYMBOL = "USD";
 
 

@@ -32,12 +32,17 @@ export function attachEventHandlers<T extends typeof CST>(
     const { from: fromAddress, to: toAddress, value: amount } = event.params;
 
     const [token, fromAccount, toAccount, fromAccountToken, toAccountToken] = await Promise.all([
+      // Load token
       context.Token.get(makeTokenId(chainId, tokenAddress)),
+      // Load accounts
       fromAddress !== ZERO_ADDRESS ? context.Account.get(makeAccountId(chainId, fromAddress)) : Promise.resolve(undefined),
       toAddress !== ZERO_ADDRESS ? context.Account.get(makeAccountId(chainId, toAddress)) : Promise.resolve(undefined),
+      // Load account tokens
       fromAddress !== ZERO_ADDRESS ? context.AccountToken.get(makeAccountTokenId(chainId, fromAddress, tokenAddress)) : Promise.resolve(undefined),
       toAddress !== ZERO_ADDRESS ? context.AccountToken.get(makeAccountTokenId(chainId, toAddress, tokenAddress)) : Promise.resolve(undefined),
     ]);
+
+    if (context.isPreload) return;
 
     // Ensure token exists (CST type)
     let cstToken = token;
@@ -45,8 +50,10 @@ export function attachEventHandlers<T extends typeof CST>(
 
     // Update total supply based on minting/burning
     if (fromAddress === ZERO_ADDRESS) {
+      // Minting: increase total supply
       context.Token.set({ ...cstToken, totalSupply: (cstToken.totalSupply ?? 0n) + amount });
     } else if (toAddress === ZERO_ADDRESS) {
+      // Burning: decrease total supply
       context.Token.set({ ...cstToken, totalSupply: (cstToken.totalSupply ?? 0n) - amount });
     }
 
@@ -74,6 +81,7 @@ export function attachEventHandlers<T extends typeof CST>(
 
     // Update balances and create entries
     if (fromAddress !== ZERO_ADDRESS && fromAccToken) {
+      // Subtract from sender (normal transfer)
       context.AccountTokenEntry.set(
         makeAccountTokenEntry(event, fromAddress, tokenAddress, -amount, event.logIndex.toString()),
       );
@@ -83,6 +91,7 @@ export function attachEventHandlers<T extends typeof CST>(
     }
 
     if (toAddress !== ZERO_ADDRESS && toAccToken) {
+      // Add to receiver (both normal transfer and minting from ZERO_ADDRESS)
       context.AccountTokenEntry.set(
         makeAccountTokenEntry(event, toAddress, tokenAddress, amount, event.logIndex.toString()),
       );
@@ -109,8 +118,12 @@ export function attachEventHandlers<T extends typeof CST>(
     const { owner, spender, value } = event.params;
     const tokenAddress = event.srcAddress;
 
-    let token = await context.Token.get(makeTokenId(chainId, tokenAddress));
-    let ownerAccount = await context.Account.get(makeAccountId(chainId, owner));
+    let [token, ownerAccount] = await Promise.all([
+      context.Token.get(makeTokenId(chainId, tokenAddress)),
+      context.Account.get(makeAccountId(chainId, owner))
+    ]);
+
+    if (context.isPreload) return;
 
     if (!token) {
       token = createNewToken(chainId, tokenAddress, "CST", context.Token.set);

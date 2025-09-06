@@ -33,6 +33,8 @@ import {
   makePoolAssetEntry,
   addToBalance,
   subFromBalance,
+  makeCorkPool_DepositId,
+  makeCorkPool_WithdrawExtendedId,
 } from "../helper";
 import { recomputePoolTvl } from "../helper";
 
@@ -48,7 +50,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
    * Creates: Pool, CA token, REF token, CPT token, CST token
    * PoolAssets: None created (pool starts empty)
    */
-  Pool.MarketCreated.contractRegister(({event, context}) => {
+  Pool.MarketCreated.contractRegister(({ event, context }) => {
     context.addCPT(event.params.principalToken);
     context.addCST(event.params.swapToken);
     context.addExchangeRateProvider(event.params.exchangeRateProvider);
@@ -58,7 +60,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     const chainId = event.chainId;
     const marketId = `${event.params.id}`;
     const poolId = marketId;
-    const {referenceAsset, collateralAsset, principalToken, swapToken, exchangeRateProvider, expiry} = event.params;
+    const { referenceAsset, collateralAsset, principalToken, swapToken, exchangeRateProvider, expiry } = event.params;
 
 
     // Parallel fetch tokens
@@ -68,6 +70,9 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       context.Token.get(makeTokenId(chainId, principalToken)),
       context.Token.get(makeTokenId(chainId, swapToken)),
     ]);
+
+    if (context.isPreload) return;
+
     refToken ||= createNewToken(chainId, referenceAsset, "REF", context.Token.set);
     collToken ||= createNewToken(chainId, collateralAsset, "CA", context.Token.set);
     prToken ||= createNewToken(chainId, principalToken, "CPT", context.Token.set);
@@ -135,6 +140,8 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)),
     ]);
 
+    if (context.isPreload) return;
+
     principalToken ||= createNewToken(chainId, principalTokenAddr, "CPT", context.Token.set);
     swapToken ||= createNewToken(chainId, swapTokenAddr, "CST", context.Token.set);
     collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
@@ -153,7 +160,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     context.PoolAsset.set(addToBalance(collateralPoolAsset, assets));
 
     const entity: CorkPool_Deposit = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      id: makeCorkPool_DepositId(event.chainId, event.block.number, event.logIndex),
       marketId: event.params.marketId,
       sender: event.params.sender,
       owner: event.params.owner,
@@ -161,7 +168,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       shares: event.params.shares,
     };
     context.CorkPool_Deposit.set(entity);
-    // if(context.isPreload) return;
+
     await recomputePoolTvl(context, chainId, poolId);
   });
 
@@ -182,16 +189,22 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     }
     const { principalTokenAddr, swapTokenAddr, collateralAssetAddr, referenceAssetAddr } = pool;
 
+    
     let [collateralToken, principalToken, swapToken, referenceToken, senderAccount, ownerAccount, collateralPoolAsset, referencePoolAsset] = await Promise.all([
+      // Load all relevant tokens
       context.Token.get(makeTokenId(chainId, collateralAssetAddr)),
       context.Token.get(makeTokenId(chainId, principalTokenAddr)),
       context.Token.get(makeTokenId(chainId, swapTokenAddr)),
       context.Token.get(makeTokenId(chainId, referenceAssetAddr)),
+      // Load all relevant accounts
       context.Account.get(makeAccountId(chainId, event.params.sender)),
       context.Account.get(makeAccountId(chainId, event.params.owner)),
+      // Load pool assets for collateral and reference tokens
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)),
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)),
     ]);
+
+    if (context.isPreload) return;
 
     principalToken ||= createNewToken(chainId, principalTokenAddr, "CPT", context.Token.set);
     swapToken ||= createNewToken(chainId, swapTokenAddr, "CST", context.Token.set);
@@ -204,14 +217,20 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
     referencePoolAsset ||= createNewPoolAsset(chainId, poolId, referenceAssetAddr, context.PoolAsset.set);
 
+    // First pair: collateral/principal (assets0/shares0)
     const { assets0, assets1 } = event.params;
     if (assets0 > 0n) {
+      // Total supply is managed by Transfer events, not here
+      // Transfer collateral from pool - only pool asset balance tracking
       context.PoolAssetEntry.set(
         makePoolAssetEntry(event, poolId, collateralAssetAddr, -assets0),
       );
       context.PoolAsset.set(subFromBalance(collateralPoolAsset, assets0));
     }
+    // Second pair: reference/swap tokens (assets1/shares1)
     if (assets1 > 0n) {
+      // Total supply is managed by Transfer events, not here
+      // Transfer reference asset from pool - only pool asset balance tracking
       context.PoolAssetEntry.set(
         makePoolAssetEntry(event, poolId, referenceAssetAddr, -assets1),
       );
@@ -219,7 +238,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     }
 
     const entity: CorkPool_WithdrawExtended = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+      id: makeCorkPool_WithdrawExtendedId(event.chainId, event.block.number, event.logIndex),
       marketId: event.params.marketId,
       sender: event.params.sender,
       owner: event.params.owner,
@@ -229,7 +248,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       shares1: event.params.shares1,
     };
     context.CorkPool_WithdrawExtended.set(entity);
-    // if(context.isPreload) return;
+
     await recomputePoolTvl(context, chainId, poolId);
   });
 
@@ -249,12 +268,17 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     const { referenceAssetAddr, collateralAssetAddr } = pool;
 
     let [referenceToken, collateralToken, swaperAccount, referencePoolAsset, collateralPoolAsset] = await Promise.all([
+      // Load relevant tokens
       context.Token.get(makeTokenId(chainId, referenceAssetAddr)),
       context.Token.get(makeTokenId(chainId, collateralAssetAddr)),
+      // Load swaper account
       context.Account.get(makeAccountId(chainId, event.params.swaper)),
+      // Load pool assets for CA/REF tokens
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)),
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)),
     ]);
+
+    if (context.isPreload) return;
 
     referenceToken ||= createNewToken(chainId, referenceAssetAddr, "REF", context.Token.set);
     collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
@@ -263,12 +287,17 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
 
     const { paUsed, raReceived } = event.params;
+    // REF: add to pool - only pool asset balance tracking
     if (paUsed > 0n) {
       context.PoolAssetEntry.set(
         makePoolAssetEntry(event, poolId, referenceAssetAddr, paUsed),
       );
       context.PoolAsset.set(addToBalance(referencePoolAsset, paUsed));
     }
+    // CST: CST balance changes handled by Transfer events, not here
+    // We only track pool CST assets if needed for pool-level tracking
+      
+    // CA: transfer from pool - only pool asset balance tracking
     if (raReceived > 0n) {
       context.PoolAssetEntry.set(
         makePoolAssetEntry(event, poolId, collateralAssetAddr, -raReceived),
@@ -308,12 +337,17 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     const { referenceAssetAddr, collateralAssetAddr } = pool;
 
     let [referenceToken, collateralToken, buyerAccount, referencePoolAsset, collateralPoolAsset] = await Promise.all([
+      // Load relevant tokens
       context.Token.get(makeTokenId(chainId, referenceAssetAddr)),
       context.Token.get(makeTokenId(chainId, collateralAssetAddr)),
+      // Load buyer account
       context.Account.get(makeAccountId(chainId, event.params.buyer)),
+      // Load pool assets for CA/REF tokens
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, referenceAssetAddr)),
       context.PoolAsset.get(makePoolAssetId(chainId, poolId, collateralAssetAddr)),
     ]);
+
+    if (context.isPreload) return;
 
     referenceToken ||= createNewToken(chainId, referenceAssetAddr, "REF", context.Token.set);
     collateralToken ||= createNewToken(chainId, collateralAssetAddr, "CA", context.Token.set);
@@ -322,12 +356,18 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     collateralPoolAsset ||= createNewPoolAsset(chainId, poolId, collateralAssetAddr, context.PoolAsset.set);
 
     const { raUsed, receivedReferenceAsset } = event.params;
+    
+    // CST: CST balance changes handled by Transfer events, not here
+    // We don't manage CST user balances or pool assets in this handler
+    
+    // Deposit CA: add to pool - only pool asset balance tracking
     if (raUsed > 0n) {
       context.PoolAssetEntry.set(
         makePoolAssetEntry(event, poolId, collateralAssetAddr, raUsed),
       );
       context.PoolAsset.set(addToBalance(collateralPoolAsset, raUsed));
     }
+    // Withdraw REF: subtract from pool - only pool asset balance tracking
     if (receivedReferenceAsset > 0n) {
       context.PoolAssetEntry.set(
         makePoolAssetEntry(event, poolId, referenceAssetAddr, -receivedReferenceAsset),
@@ -347,7 +387,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
       exchangeRates: event.params.exchangeRates,
     };
     context.CorkPool_UnwindSwap.set(unwindEntity);
-    // if(context.isPreload) return;
+
     await recomputePoolTvl(context, chainId, poolId);
   });
 
@@ -371,7 +411,7 @@ export function attachEventHandlers<T extends typeof CorkPool>(
     };
     context.CorkPool_DepositPaused.set(entity);
   });
-  
+
   Pool.DepositUnpaused.handler(async ({ event, context }) => {
     const entity: CorkPool_DepositUnpaused = {
       id: `${event.chainId}_${event.block.number}_${event.logIndex}`,

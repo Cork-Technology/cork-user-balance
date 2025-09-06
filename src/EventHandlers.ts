@@ -14,14 +14,7 @@ import {
   SharesFactory,
   CPT,
   CST,
-  ETH_USD,
-  WSTETH_USD,
-  BTC_ETH,
-  LINK_USD,
-  XAU_USD,
-  DAI_USD,
-  EUR_USD,
-  GBP_USD,
+  PriceFeedAggregator,
 } from "generated";
 
 import { attachEventHandlers as attachCorkConfigHandlers } from "./handler/CorkConfig";
@@ -41,11 +34,4 @@ attachExchangeRateProviderHandlers(ExchangeRateProvider);
 attachSharesFactoryHandlers(SharesFactory);
 attachCorkPTHandlers(CPT);
 attachCorkSTHandlers(CST);
-attachUSDPriceFeedHandlers(ETH_USD);
-attachUSDPriceFeedHandlers(WSTETH_USD);
-attachUSDPriceFeedHandlers(BTC_ETH);
-attachUSDPriceFeedHandlers(LINK_USD);
-attachUSDPriceFeedHandlers(XAU_USD);
-attachUSDPriceFeedHandlers(DAI_USD);
-attachUSDPriceFeedHandlers(EUR_USD);
-attachUSDPriceFeedHandlers(GBP_USD);
+attachUSDPriceFeedHandlers(PriceFeedAggregator);
