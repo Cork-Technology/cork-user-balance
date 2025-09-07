@@ -40,7 +40,7 @@ services:
     networks:
       - envio-indexer-network
   envio-indexer:
-    container_name: cork-user-balance
+    container_name: ${APP_NAME:-cork-user-balance}
     image: ${DOCKER_IMAGE}
     ports:
       - "8081:8081"

@@ -1,0 +1,54 @@
+on:
+  workflow_call:
+    inputs:
+      environment: { required: true, type: string }
+      app_name:    { required: true, type: string }
+      image_tag:   { required: true, type: string }
+      config_file: { required: false, type: string, default: "config.yaml" }
+      vcpu:        { required: false, type: string, default: "2" }
+      memory:      { required: false, type: string, default: "2048" }
+      disk_size:   { required: false, type: string, default: "10" }
+    secrets:
+      PHALA_CLOUD_API_KEY:          { required: true }
+      PHALA_APP_ID:                 { required: true }
+      DOCKER_IMAGE:                 { required: true }
+      DSTACK_AWS_ACCESS_KEY_ID:     { required: true }
+      DSTACK_AWS_SECRET_ACCESS_KEY: { required: true }
+      DSTACK_AWS_REGION:            { required: true }
+      DSTACK_AWS_ECR_REGISTRY:      { required: true }
+      DSTACK_AWS_SESSION_TOKEN:     { required: false }
+
+permissions:
+  contents: read
+
+jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      environment: ${{ inputs.environment }}
+      timeout-minutes: 20
+      env:
+        APP_NAME:    ${{ inputs.app_name }}
+        DOCKER_TAG:  ${{ inputs.image_tag }}
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            persist-credentials: false
+      
+        - name: Deploy to Phala Cloud
+          uses: Leechael/phala-deploy-action@v2
+          with:
+            phala-api-key: ${{ secrets.PHALA_CLOUD_API_KEY }}
+            cvm-name:      ${{ inputs.app_name }}
+            compose-file:  docker-compose.yml
+            vcpu:          ${{ inputs.vcpu }}
+            memory:        ${{ inputs.memory }}
+            disk-size:     ${{ inputs.disk_size }}
+            app-id:        ${{ secrets.PHALA_APP_ID }}
+            envs: |
+              APP_NAME: ${{ inputs.app_name }}
+              DOCKER_IMAGE: ${{ secrets.DOCKER_IMAGE }}:${{ inputs.image_tag }}
+              DSTACK_AWS_ACCESS_KEY_ID: ${{ secrets.DSTACK_AWS_ACCESS_KEY_ID }}
+              DSTACK_AWS_SECRET_ACCESS_KEY: ${{ secrets.DSTACK_AWS_SECRET_ACCESS_KEY }}
+              DSTACK_AWS_REGION: ${{ secrets.DSTACK_AWS_REGION }}
+              DSTACK_AWS_ECR_REGISTRY: ${{ secrets.DSTACK_AWS_ECR_REGISTRY }}
+              DSTACK_AWS_SESSION_TOKEN: ${{ secrets.DSTACK_AWS_SESSION_TOKEN }}
